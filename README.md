@@ -1,46 +1,106 @@
-# Getting Started with Create React App
+![](./examples/banner.png)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Game of Life WebGL
 
-## Available Scripts
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/feydor/game-of-life?include_prereleases)
+![GitHub last commit](https://img.shields.io/github/last-commit/feydor/game-of-life)
+![GitHub issues](https://img.shields.io/github/issues-raw/feydor/game-of-life)
+![GitHub stars](https://img.shields.io/github/stars/feydor/game-of-life)
+![GitHub](https://img.shields.io/github/license/feydor/game-of-life)
+![Github StandardJS](https://img.shields.io/badge/code_style-standard-brightgreen.svg)
 
-In the project directory, you can run:
+A React.js web app to interact with a WebGL(three.js) implementation of Conway's Game of Life.
 
-### `npm start`
+# Table of contents
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- [Live Version](#liveversion)
+- [Screenshots](#screenshots)
+- [Installation](#installation)
+- [Development](#development)
+  - [Codebase](#codebase)
+    - [Technologies](#technologies)
+    - [Folder Structure](#folder-structure)
+  - [Design Overview](#design-overview)
+- [License](#license)
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+# Live Version
+[(Back to top)](#table-of-contents)
 
-### `npm test`
+![Heroku](https://heroku-badges.herokuapp.com/?app=#&root=index.html)
+[Go to live version.](#)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Screenshots
+[(Back to top)](#table-of-contents)
 
-### `npm run build`
+![](./examples/main.png)
+![](./examples/function.png)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+# Installation
+[(Back to top)](#table-of-contents)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Clone this repository, navigate into the project folder, and build the dependencies by executing:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```sh
+git clone https://github.com/feydor/game-of-life.git
+cd game-of-life
+npm install
+```
 
-### `npm run eject`
+After installing the dependencies, start the development server by executing:
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```sh
+npm start
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+By default a development server will start at ``http://localhost:3001``. 
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+# Development
+[(Back to top)](#table-of-contents)
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## Codebase
 
-## Learn More
+### Technologies
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Technologies used in this mono repo include:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+- React.Js: front-end framework
+- Three.js: WebGL library
+- ExpressJS: RESTful api
+- MongoDB: NoSQL database
+- React-Bootstrap: CSS and HTML framework
+- create-react-app: Web application bundler and setup
+- Prettier: JS code style formatter
+- Jest: Testing framework
+
+### Folder Structure
+
+```sh
+nummifier/
+├── client     # Front-end React.js app
+│   ├── build               # Static build, served by server.js
+│   ├── public              # HTML, favicons, etc
+│   └── src                 # React components, containers, tests, numerological methods
+│       ├── algorithims     # Gematria, Tic-Xenotation, digital reduction
+│       ├── components      # Function components
+│       ├── images          # gifs, resources
+│       └── containers      # Stateful class container and entrypoint
+├── db         # Database seeding functions
+├── examples   # Screenshots and assorted images
+├── models     # MongoDB schemas, models, and pre-hooks
+└── server.js  # Back-end Express.js app
+```
+
+## Design Overview
+[(Back to top)](#table-of-contents)
+
+## Psuedocode
+
+### Conway's Game of Life
+The following is main algorithm for calculating the next game state:
+```
+```
+
+# License
+[(Back to top)](#table-of-contents)
+
+MIT, see the [LICENSE](./LICENSE) file.
