@@ -4,9 +4,9 @@
 const WRAPEDGES = true;
 
 interface CellMapInterface {
-  width: number,
-  height: number,
-  cells: Array<boolean>
+  width: number;
+  height: number;
+  cells: Array<boolean>;
 }
 
 /**
@@ -18,7 +18,7 @@ export class CellMap implements CellMapInterface {
   width: number;
   height: number;
   cells: Array<boolean>; /* 0 indexed */
-  
+
   constructor(h: number, w: number) {
     this.width = w;
     this.height = h;
@@ -27,32 +27,35 @@ export class CellMap implements CellMapInterface {
 
   /* turns a cell on */
   setCell(x: number, y: number): void {
-    if (x >= this.width || x < 0 || y >= this.height || y < 0) throw new RangeError('Arguments are out of range.');
-    this.cells[x + y * this.height] = true; 
-  }
-  
-  /* turns a cell off */
-  clearCell(x: number, y: number): void {
-    if (x >= this.width || x < 0 || y >= this.height || y < 0) throw new RangeError('Arguments are out of range.');
-    this.cells[x + y * this.height] = false; 
+    if (x >= this.width || x < 0 || y >= this.height || y < 0)
+      throw new RangeError("Arguments are out of range.");
+    this.cells[x + y * this.height] = true;
   }
 
-  /* returns the cell's current state 
+  /* turns a cell off */
+  clearCell(x: number, y: number): void {
+    if (x >= this.width || x < 0 || y >= this.height || y < 0)
+      throw new RangeError("Arguments are out of range.");
+    this.cells[x + y * this.height] = false;
+  }
+
+  /* returns the cell's current state
    * @example:
    * - WRAPEDGE = true, width = 3, height = 3
    *   - getCellState(0, 0) = true
    *   - getCellState(3, 3) = true, wraps around to (0, 0)
-   */ 
-  getCellState(x: number, y:number): boolean {
+   */
+  getCellState(x: number, y: number): boolean {
     if (WRAPEDGES) {
       while (x < 0) x += this.width;
       while (x >= this.width) x -= this.width;
       while (y < 0) y += this.height;
       while (y >= this.height) y -= this.height;
     } else {
-      if (x >= this.width || x < 0 || y >= this.height || y < 0) throw new RangeError('Arguments are out of range.');
+      if (x >= this.width || x < 0 || y >= this.height || y < 0)
+        throw new RangeError("Arguments are out of range.");
     }
-     
+
     return this.cells[x + y * this.height];
   }
 
@@ -65,23 +68,23 @@ export class CellMap implements CellMapInterface {
     let count = 0;
 
     // going clockwise, starting from the topmost neighbor
-    if (this.getCellState(x, y-1)) count++;   // N
-    if (this.getCellState(x+1, y-1)) count++; // NE
-    if (this.getCellState(x+1, y)) count++;   // E
-    if (this.getCellState(x+1, y+1)) count++; // SE
-    if (this.getCellState(x, y+1)) count++;   // S
-    if (this.getCellState(x-1, y+1)) count++; // SW
-    if (this.getCellState(x-1, y)) count++;   // W
-    if (this.getCellState(x-1, y-1)) count++; // NW
-    
+    if (this.getCellState(x, y - 1)) count++; // N
+    if (this.getCellState(x + 1, y - 1)) count++; // NE
+    if (this.getCellState(x + 1, y)) count++; // E
+    if (this.getCellState(x + 1, y + 1)) count++; // SE
+    if (this.getCellState(x, y + 1)) count++; // S
+    if (this.getCellState(x - 1, y + 1)) count++; // SW
+    if (this.getCellState(x - 1, y)) count++; // W
+    if (this.getCellState(x - 1, y - 1)) count++; // NW
+
     return count;
   }
-  
+
   /**
    * generates the next generation of cells from the current one
    * @returns {CellMap}
    * rules: 1. Any live cell with two or three live neighbours survives.
-   *        2. Any dead cell with three live neighbours becomes a live cell. 
+   *        2. Any dead cell with three live neighbours becomes a live cell.
    *        3. All other live cells die in the next generation. Similarly, all other dead cells stay dead.
    */
   nextGeneration(): CellMap {
@@ -91,13 +94,13 @@ export class CellMap implements CellMapInterface {
     for (let y = 0; y < this.height; y++) {
       for (let x = 0; x < this.width; x++) {
         let neighborCount = this.getLivingNeighbors(x, y);
-        
+
         if (this.getCellState(x, y)) {
           // cell is currently alive
-          if ((neighborCount < 2) || (neighborCount > 3)) {
+          if (neighborCount < 2 || neighborCount > 3) {
             // cell dies when neighbors < 2 and neighbors > 3
             nextMap.clearCell(x, y);
-          } 
+          }
         } else {
           // cell is currently dead
           if (neighborCount == 3) {
@@ -150,26 +153,26 @@ export class Game {
   }
 
   handleInput(e: KeyboardEvent): string {
-     switch (e.code) {
-       case "Enter":
-         this.currCells = this.currCells.nextGeneration();
-         let out = this.draw();
-         return out;
+    switch (e.code) {
+      case "Enter":
+        this.currCells = this.currCells.nextGeneration();
+        let out = this.draw();
+        return out;
       case "Backspace":
       case "KeyQ":
       case "KeyE":
         this.isRunning = false;
         return "Exiting";
-     
+
       default:
-        return "Controls: 'Enter' for next iteration, 'Backspace/q/e' to quit"
-     }
+        return "Controls: 'Enter' for next iteration, 'Backspace/q/e' to quit";
+    }
   }
 
   setupInputListener(): void {
-    document.addEventListener('keydown', (e) => {
-     let status = this.handleInput(e);
-     console.log(status);
-    });  
+    document.addEventListener("keydown", (e) => {
+      let status = this.handleInput(e);
+      console.log(status);
+    });
   }
 }

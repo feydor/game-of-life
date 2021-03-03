@@ -1,5 +1,5 @@
 /* gameoflife.test.ts */
-import * as GOL from './gameoflife';
+import * as GOL from "./gameoflife";
 
 let cellmap: GOL.CellMap;
 const WIDTH = 3;
@@ -58,7 +58,7 @@ test("getLivingNeighbors works: with wrapping", () => {
 
 test("nextGeneration works: simple oscillators", () => {
   cellmap = new GOL.CellMap(5, 5); // need bigger board for oscillators
-  
+
   // blinker with a period of 2
   cellmap.setCell(2, 2);
   cellmap.setCell(2, 3);
@@ -69,7 +69,7 @@ test("nextGeneration works: simple oscillators", () => {
   expect(cellmap.getLivingNeighbors(2, 4)).toEqual(1);
 
   expect(cellmap.getLivingNeighbors(1, 3)).toEqual(3); // check new cells
-  
+
   let nextGen = cellmap.nextGeneration();
   expect(nextGen.getCellState(1, 3)).toEqual(true);
   expect(nextGen.getCellState(2, 3)).toEqual(true);
