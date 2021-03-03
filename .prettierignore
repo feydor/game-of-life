@@ -12,6 +12,8 @@
 /public
 *.html
 
+Canvas.tsx
+
 # misc
 .DS_Store
 .env

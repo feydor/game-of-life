@@ -114,8 +114,8 @@ export class CellMap implements CellMapInterface {
 export class Game {
   currCells: CellMap;
   nextCells: CellMap;
-  readonly HEIGHT = 25;
-  readonly WIDTH = 25;
+  readonly HEIGHT = 15;
+  readonly WIDTH = 15;
   isRunning: boolean;
 
   constructor() {
