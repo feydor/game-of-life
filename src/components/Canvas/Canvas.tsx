@@ -1,11 +1,31 @@
 import { useEffect } from "react";
-import { mat4 } from "gl-matrix";
+import * as THREE from 'three';
 import style from "./Canvas.module.css";
+import * as GOL from "../../game/gameoflife";
+
+import InputManager from "../InputManager/InputManager";
+
+// globals
+const globals = {
+  time: 0,
+  deltaTime: 0,
+};
+let then: number;
+const inputManager = new InputManager();
+const game = new GOL.Game();
+
+let camera: any;
+let scene: any;
+let renderer: any; // it renders the camera on the scene 
+let sphere: any;
+let geometry: any;
+let material: any;
+let mesh: any;
 
 interface CanvasProps {
   id: string;
-  width: string;
-  height: string;
+  width: number;
+  height: number;
 }
 
 /**
@@ -13,230 +33,79 @@ interface CanvasProps {
  * @class Canvas
  */
 const Canvas = (props: CanvasProps) => {
-  const canvas = document.createElement("canvas");
-  canvas.id = props.id;
-  canvas.style.width = props.width;
-  canvas.style.height = props.height;
+  
+  const init = () => {
+    // define a frustum
+    const fov = 75;
+    const aspect = props.width / props.height;
+    const near = 0.1;
+    const far = 3;
+    camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-  const existingCanvas = document.getElementById(canvas.id);
-  if (existingCanvas && existingCanvas.parentElement) {
-    existingCanvas.parentElement.removeChild(existingCanvas);
-  }
+    camera.position.z = 2;
 
-  const initGL = () => {
-    const gl = canvas.getContext("webgl");
+    scene = new THREE.Scene();
 
-    // init vertex shader program
-    const vsSource = `
-    attribute vec4 aVertexPosition;
-
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
-
-    void main() {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-    }
-    `;
-
-    // init fragment shader program
-    // returns white every time
-    const fsSource = `
-    void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    `;
-
-    const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
-
-    const programInfo = {
-      program: shaderProgram,
-      attribLocations: {
-        vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
-      },
-      uniformLocations: {
-        projectionMatrix: gl.getUniformLocation(
-          shaderProgram,
-          "uProjectionMatrix"
-        ),
-        modelViewMatrix: gl.getUniformLocation(
-          shaderProgram,
-          "uModelViewMatrix"
-        ),
-      },
-    };
+    const radius = 1;
+    const widthSegments = 24;
+    const heightSegments = 10;
+    sphere = new THREE.SphereGeometry(radius, widthSegments, heightSegments);;
+    material = new THREE.MeshNormalMaterial({
+      flatShading: true
+    });
+    
+    mesh = new THREE.Mesh( sphere, material );
+    scene.add( mesh );
+    
+    renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize( props.width, props.height );
+    renderer.setAnimationLoop( render );
   };
 
   useEffect(() => {
-    initGL();
-    document.getElementById("canvas-container").appendChild(canvas);
+    init();
+    document.getElementById("canvas-container").appendChild(renderer.domElement);
   });
 
   return <div id="canvas-container" className={style.Canvas}></div>;
 };
 
 /**
- * Initialize a shader program, so WebGL knows how to draw our data
- * @param {string} vsSource, fsSource - shader functions written in GLSL
- * @example
- * - initShaderProgram(gl, vsSource, fsSource) = shaderProgram
+ * a single tick of rendering
  */
-function initShaderProgram(gl: any, vsSource: string, fsSource: string) {
-  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+function render(now: number) {
+  globals.time  = now * 0.001; // to seconds
+  globals.deltaTime = Math.min(globals.time - then, 1 / 20); // limit deltaTime
+  then = globals.time;
+  
+  mesh.rotation.x = globals.time;
+  mesh.rotation.y = globals.time / 2000;
 
-  // Create the shader program
-  const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-
-  // If creating the shader program failed, alert
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    console.log(
-      "Unable to initialize the shader program: " +
-        gl.getProgramInfoLog(shaderProgram)
-    );
-    return null;
+  if (resizeRendererToDisplaySize(renderer)) {
+    const canvas = renderer.domElement;
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
   }
 
-  return shaderProgram;
-}
-
-/**
- * creates a shader of the given type, uploads the source and
- * compiles it.
- * @param {VERTEX_SHADER || FRAGMENT_SHADER} type
- * @param {string} source
- * @example
- * - loadShader(gl, gl.VERTEX_SHADER, vsSource) = vertexShader
- */
-function loadShader(gl: any, type: any, source: string) {
-  const shader = gl.createShader(type);
-
-  // Send the source to the shader object
-  gl.shaderSource(shader, source);
-
-  // Compile the shader program
-  gl.compileShader(shader);
-
-  // See if it compiled successfully
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    console.log(
-      "An error occurred compiling the shaders: " + gl.getShaderInfoLog(shader)
-    );
-    gl.deleteShader(shader);
-    return null;
-  }
-
-  return shader;
-}
-
-/**
- * creates a buffer with its vertex positions
- * will be augmented for more complex 3d shapes
- */
-function initBuffers(gl: any) {
-  // Create a buffer for the square's positions.
-  const positionBuffer = gl.createBuffer();
-
-  // Select the positionBuffer as the one to apply buffer
-  // operations to from here out.
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-  // Now create an array of positions for the square.
-  const positions = [-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0];
-
-  // Now pass the list of positions into WebGL to build the
-  // shape. We do this by creating a Float32Array from the
-  // JavaScript array, then use it to fill the current buffer.
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-  return {
-    position: positionBuffer,
-  };
-}
-
-/**
- * drawScene
- */
-function drawScene(gl: any, programInfo: any, buffers: any) {
-  gl.clearColor(0.0, 0.0, 0.0, 1.0); // Clear to black, fully opaque
-  gl.clearDepth(1.0); // Clear everything
-  gl.enable(gl.DEPTH_TEST); // Enable depth testing
-  gl.depthFunc(gl.LEQUAL); // Near things obscure far things
-
-  // Clear the canvas before we start drawing on it.
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-  // Create a perspective matrix, a special matrix that is
-  // used to simulate the distortion of perspective in a camera.
-  // Our field of view is 45 degrees, with a width/height
-  // ratio that matches the display size of the canvas
-  // and we only want to see objects between 0.1 units
-  // and 100 units away from the camera.
-  const fieldOfView = (45 * Math.PI) / 180; // in radians
-  const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-  const zNear = 0.1;
-  const zFar = 100.0;
-  const projectionMatrix = mat4.create();
-
-  // note: glmatrix.js always has the first argument
-  // as the destination to receive the result.
-  mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-
-  // Set the drawing position to the "identity" point, which is
-  // the center of the scene.
-  const modelViewMatrix = mat4.create();
-
-  // Now move the drawing position a bit to where we want to
-  // start drawing the square.
-  mat4.translate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to translate
-    [-0.0, 0.0, -6.0]
-  ); // amount to translate
-
-  // Tell WebGL how to pull out the positions from the position
-  // buffer into the vertexPosition attribute.
+  // update GoL state
   {
-    const numComponents = 2; // pull out 2 values per iteration
-    const type = gl.FLOAT; // the data in the buffer is 32bit floats
-    const normalize = false; // don't normalize
-    const stride = 0; // how many bytes to get from one set of values to the next
-    // 0 = use type and numComponents above
-    const offset = 0; // how many bytes inside the buffer to start from
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-    gl.vertexAttribPointer(
-      programInfo.attribLocations.vertexPosition,
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset
-    );
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    if (inputManager.isDown("Enter")) game.update(); 
   }
 
-  // Tell WebGL to use our program when drawing
-  gl.useProgram(programInfo.program);
+  // gameObjectManager.update()
+  inputManager.update();
+  renderer.render(scene, camera);
+}
 
-  // Set the shader uniforms
-  gl.uniformMatrix4fv(
-    programInfo.uniformLocations.projectionMatrix,
-    false,
-    projectionMatrix
-  );
-  gl.uniformMatrix4fv(
-    programInfo.uniformLocations.modelViewMatrix,
-    false,
-    modelViewMatrix
-  );
-
-  {
-    const offset = 0;
-    const vertexCount = 4;
-    gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+function resizeRendererToDisplaySize(renderer: any) {
+  const canvas = renderer.domElement;
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const needResize = canvas.width !== width || canvas.height !== height;
+  if (needResize) {
+    renderer.setSize(width, height, false);
   }
+  return needResize;
 }
 
 export default Canvas;
