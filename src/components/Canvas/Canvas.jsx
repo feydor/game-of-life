@@ -15,14 +15,22 @@ const globals = {
 };
 let then;
 const inputManager = new InputManager();
-const game = new GOL.Game();
+const gGame = new GOL.Game();
 
 let camera;
 let renderer;
 let scene;
-let materials = {};
+
+let materials = {
+  field: undefined,
+  isAlive: undefined,
+  isDead: undefined,
+};
 let lights = {};
 let gSphere;
+let gField;
+let gCells = [];
+let cellGeom;
 
 /**
  * for webgl rendering
@@ -35,26 +43,26 @@ const Canvas = (props) => {
     renderer.setSize( props.width, props.height );
 
     // define a frustum
-    const fov = 75;
+    const fov = 95; // 70
     const aspect = props.width / props.height;
     const near = 0.1;
     const far = 30000;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-    camera.position.set(1200, -250, 20000);
-    // camera.position.z = 2;
+    // camera.position.set(1200, -250, 20000);
+    camera.position.z = 1000;
 
     // init mouse interaction
     const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enablePan = false;
-    controls.minDistance = 1.2;
-    controls.maxDistance = 5;
+    controls.enablePan = true;
+    controls.minDistance = 1.0;
+    controls.maxDistance = 10;
     controls.update();
 
     scene = new THREE.Scene();
 
     // init the skybox
-    const skyboxMaterials = createMaterialArray('https://i.ibb.co/TL4h789/darkworld.jpg', 6);
+    const skyboxMaterials = createMaterialArray('skybox/darkworld.jpg', 6);
     const skyboxGeo = new THREE.BoxGeometry(1000, 1000, 1000); 
     const skybox = new THREE.Mesh( skyboxGeo, skyboxMaterials );
     scene.add( skybox );
@@ -72,9 +80,13 @@ const Canvas = (props) => {
     });
     
     gSphere = new THREE.Mesh( sphere, gridMaterial );
-    scene.add( gSphere );
+    // scene.add( gSphere );
 
     initLights();
+
+    initMaterials();
+
+    initObjects();
     
     renderer.setAnimationLoop( render );
   };
@@ -107,7 +119,8 @@ function render(now) {
 
   // update GoL state
   {
-    if (inputManager.justPressed("Enter")) game.update(); 
+      gGame.update();
+      updateCells();
   }
 
   // update sphere inputs
@@ -186,19 +199,21 @@ function createMaterialArray(filename, n) {
 }
 
 function initMaterials() {
+  let textureLoader = new THREE.TextureLoader();
+
   // board material
-  materials.fieldMaterial = new THREE.MeshLambertMaterial({
-    map: new THREE.TextureLoader().load('grid.jpg')
+  materials.field = new THREE.MeshBasicMaterial({
+    map: textureLoader.load('grid.jpg')
   });
 
-  // dark square material
-  materials.darkSquareMaterial = new THREE.MeshLambertMaterial({
-    map: new THREE.TextureLoader().load('dark_square.jpg')
+  // cell is dead material
+  materials.isDead = new THREE.MeshBasicMaterial({
+    map: textureLoader.load('light_square.jpg')
   });
   //
-  // light square material
-  materials.lightSquareMaterial = new THREE.MeshLambertMaterial({
-    map: new THREE.TextureLoader().load('light_square.jpg')
+  // cell is alive material
+  materials.isAlive = new THREE.MeshBasicMaterial({
+    map: textureLoader.load('dark_square.jpg')
   });
 }
 
@@ -210,6 +225,49 @@ function initLights() {
 
   // add the lights in the scene
   scene.add(lights.topLight);
+}
+
+function initObjects() {
+  let fieldGeom = new THREE.PlaneGeometry( 10, 10 ); // 10x10 board
+  gField = new THREE.Mesh( fieldGeom, materials.field );   
+  gField.position.set(5, 5, 0); // align on (0, 0)
+  scene.add( gField );
+
+  cellGeom = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
+
+  let cellMaterial;
+
+  // init the Game of Life cells on gField
+  for (let y = 0; y < 10; y++) {
+    for (let x = 0; x < 10; x++) {
+      const isAlive = gGame.currCells.getCellState(x, y);
+      cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
+
+      const cell = new THREE.Mesh( cellGeom, cellMaterial ); 
+      cell.position.set(x + 0.5, y + 0.5, 0.01);
+      cell.isAlive = isAlive;
+     
+      gCells[x + y * gGame.HEIGHT] = cell;
+      
+      scene.add( cell );
+    }
+  }
+  
+  scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
+}
+
+function updateCells() {
+  for (let y = 0; y < 10; y++) {
+    for (let x = 0; x < 10; x++) {
+      let cell = gCells[x + y * gGame.HEIGHT];
+      let newState = gGame.currCells.getCellState(x, y);
+      
+      // if change to cell state, update material
+      cell.material = (newState) ? materials.isAlive : materials.isDead;
+      if (cell.isAlive !== newState) {
+      }
+    }
+  }
 }
 
 export default Canvas;

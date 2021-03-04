@@ -32,8 +32,9 @@ A React.js web app to interact with a WebGL(three.js) implementation of Conway's
 # Screenshots
 [(Back to top)](#table-of-contents)
 
-![](./examples/main.png)
-![](./examples/function.png)
+### In progress screenshot
+As of 03/04/21:
+![](./examples/inprogress.png)
 
 # Installation
 [(Back to top)](#table-of-contents)

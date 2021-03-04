@@ -114,8 +114,8 @@ export class CellMap implements CellMapInterface {
 export class Game {
   currCells: CellMap;
   nextCells: CellMap;
-  readonly HEIGHT = 15;
-  readonly WIDTH = 15;
+  readonly HEIGHT = 10;
+  readonly WIDTH = 10;
   isRunning: boolean;
 
   constructor() {
@@ -125,18 +125,17 @@ export class Game {
 
     // TODO: Have difficulty modes/ random starting seeds;
     // set up a glider, from top to bottom
-    this.currCells.setCell(10, 10);
-    this.currCells.setCell(11, 11);
-    this.currCells.setCell(9, 12);
-    this.currCells.setCell(10, 12);
-    this.currCells.setCell(11, 12);
+    this.currCells.setCell(5, 5);
+    this.currCells.setCell(6, 6);
+    this.currCells.setCell(4, 7);
+    this.currCells.setCell(5, 7);
+    this.currCells.setCell(6, 7);
   }
 
   update() {
-    this.nextCells = this.currCells.nextGeneration();
-    console.log(this.currCells.cells);
+    this.currCells = this.currCells.nextGeneration();
     console.log("Running next generation.");
-    console.log(this.nextCells.cells);
+    console.log(this.currCells.cells);
   }
 
   run() {

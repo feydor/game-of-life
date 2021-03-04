@@ -84,7 +84,9 @@ test("iteration works", () => {
   }
 });
 
-test("Game text interface works", () => {
-  let game = new GOL.Game();
-  game.run();
+/*
+test("Game update works", () => {
+  let game = new GOL.Game(); // initial state is a glider
+  game.update();
 });
+*/
