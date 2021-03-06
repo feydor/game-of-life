@@ -4,6 +4,7 @@ import style from "./Canvas.module.css";
 import * as GOL from "../../game/gameoflife";
 
 import InputManager from "../InputManager/InputManager";
+import {OBJLoader} from 'three-obj-mtl-loader';
 import {WebGLRenderTarget} from "three";
 const OrbitControls = require('three-orbit-controls')(THREE);
 
@@ -29,8 +30,10 @@ let materials = {
 let lights = {};
 let gSphere;
 let gField;
-let gCells = [];
+let gCells = new Array(gGame.WIDTH * gGame.HEIGHT);
 let cellGeom;
+let bunnyGeom;
+let gBunny;
 
 /**
  * for webgl rendering
@@ -118,7 +121,7 @@ function render(now) {
   }
 
   // update GoL state
-  {
+  if (globals.deltaTime % 2 === 0){
       gGame.update();
       updateCells();
   }
@@ -235,15 +238,51 @@ function initObjects() {
 
   cellGeom = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
 
+
+  // init bunny model
+  var bunnyMaterial = new THREE.MeshPhongMaterial( { color: 'white' } );
+  var loader = new OBJLoader();
+  loader.load( 'big-buck-bunny.obj',
+    function( obj ){
+      console.log(obj);
+      obj.traverse( function( child ) {
+        if ( child instanceof THREE.Mesh ) {
+          // console.log(child.geometry);
+          bunnyGeom = child.geometry; // TODO: Convert from BufferGeometry to Geometry???
+          child.material = bunnyMaterial;
+        }
+      } );
+      scene.add( obj );
+    },
+    function( xhr ){
+      console.log( (xhr.loaded / xhr.total * 100) + "% loaded")
+    },
+    function( err ){
+      console.error( "Error loading 'big-buck-bunny.obj'")
+    }
+  );
+
+  /*
+  let loader = new THREE.BufferGeometryLoader();
+    loader.load('big-buck-bunny.obj', (geom) => {
+      bunnyGeom = geom;
+    },
+      function ( xhr ) {
+        console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' ); 
+      }
+    );
+  */
+
   let cellMaterial;
 
   // init the Game of Life cells on gField
-  for (let y = 0; y < 10; y++) {
-    for (let x = 0; x < 10; x++) {
+  for (let y = 0; y < gGame.HEIGHT; y++) {
+    for (let x = 0; x < gGame.WIDTH; x++) {
       const isAlive = gGame.currCells.getCellState(x, y);
       cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
 
-      const cell = new THREE.Mesh( cellGeom, cellMaterial ); 
+      // load cell, init positions, and add to scene
+      const cell = new THREE.Mesh( bunnyGeom, cellMaterial ); 
       cell.position.set(x + 0.5, y + 0.5, 0.01);
       cell.isAlive = isAlive;
      
@@ -257,8 +296,8 @@ function initObjects() {
 }
 
 function updateCells() {
-  for (let y = 0; y < 10; y++) {
-    for (let x = 0; x < 10; x++) {
+  for (let y = 0; y < gGame.HEIGHT; y++) {
+    for (let x = 0; x < gGame.WIDTH; x++) {
       let cell = gCells[x + y * gGame.HEIGHT];
       let newState = gGame.currCells.getCellState(x, y);
       
