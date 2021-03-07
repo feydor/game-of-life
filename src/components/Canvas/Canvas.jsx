@@ -5,7 +5,7 @@ import * as GOL from "../../game/gameoflife";
 
 import InputManager from "../InputManager/InputManager";
 import {OBJLoader} from 'three-obj-mtl-loader';
-import {WebGLRenderTarget} from "three";
+// import {WebGLRenderTarget} from "three";
 const OrbitControls = require('three-orbit-controls')(THREE);
 
 // globals
@@ -52,7 +52,7 @@ const Canvas = (props) => {
     const far = 30000;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-    // camera.position.set(1200, -250, 20000);
+    camera.position.set(1200, -250, 20000);
     camera.position.z = 1000;
 
     // init mouse interaction
@@ -121,18 +121,16 @@ function render(now) {
   }
 
   // update GoL state
-  if (globals.deltaTime % 2 === 0){
+  if (now % 60) {
       gGame.update();
-      updateCells();
+      // updateCells();
   }
 
   // update sphere inputs
-  {
-    if (inputManager.isDown("ArrowRight")) gSphere.rotation.y += globals.deltaRotation;
-    if (inputManager.isDown("ArrowLeft")) gSphere.rotation.y -= globals.deltaRotation;
-    if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
-    if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
-  }
+  if (inputManager.isDown("ArrowRight")) gSphere.rotation.y += globals.deltaRotation;
+  if (inputManager.isDown("ArrowLeft")) gSphere.rotation.y -= globals.deltaRotation;
+  if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
+  if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
 
   // gameObjectManager.update()
   inputManager.update();
@@ -210,12 +208,12 @@ function initMaterials() {
   });
 
   // cell is dead material
-  materials.isDead = new THREE.MeshBasicMaterial({
+  materials.isDead = new THREE.MeshPhongMaterial({
     map: textureLoader.load('light_square.jpg')
   });
   //
   // cell is alive material
-  materials.isAlive = new THREE.MeshBasicMaterial({
+  materials.isAlive = new THREE.MeshPhongMaterial({
     map: textureLoader.load('dark_square.jpg')
   });
 }
@@ -244,15 +242,39 @@ function initObjects() {
   var loader = new OBJLoader();
   loader.load( 'big-buck-bunny.obj',
     function( obj ){
-      console.log(obj);
       obj.traverse( function( child ) {
         if ( child instanceof THREE.Mesh ) {
           // console.log(child.geometry);
           bunnyGeom = child.geometry; // TODO: Convert from BufferGeometry to Geometry???
+          console.log(bunnyGeom)
           child.material = bunnyMaterial;
         }
       } );
-      scene.add( obj );
+      // scene.add( obj );
+      //
+
+      let cellMaterial;
+
+      // init the Game of Life cells on gField
+      for (let y = 0; y < gGame.HEIGHT; y++) {
+        for (let x = 0; x < gGame.WIDTH; x++) {
+          const isAlive = gGame.currCells.getCellState(x, y);
+          cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
+
+          // load cell, init positions, and add to scene
+          console.log(bunnyGeom)
+          const cell = new THREE.Mesh( bunnyGeom, cellMaterial ); 
+          cell.position.set(x + 0.5, y + 0.5, 0.01);
+          cell.isAlive = isAlive;
+
+          gCells[x + y * gGame.HEIGHT] = cell;
+
+          scene.add( cell );
+        }
+      }
+
+      scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
+
     },
     function( xhr ){
       console.log( (xhr.loaded / xhr.total * 100) + "% loaded")
@@ -273,26 +295,6 @@ function initObjects() {
     );
   */
 
-  let cellMaterial;
-
-  // init the Game of Life cells on gField
-  for (let y = 0; y < gGame.HEIGHT; y++) {
-    for (let x = 0; x < gGame.WIDTH; x++) {
-      const isAlive = gGame.currCells.getCellState(x, y);
-      cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
-
-      // load cell, init positions, and add to scene
-      const cell = new THREE.Mesh( bunnyGeom, cellMaterial ); 
-      cell.position.set(x + 0.5, y + 0.5, 0.01);
-      cell.isAlive = isAlive;
-     
-      gCells[x + y * gGame.HEIGHT] = cell;
-      
-      scene.add( cell );
-    }
-  }
-  
-  scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
 }
 
 function updateCells() {

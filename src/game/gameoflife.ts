@@ -134,8 +134,8 @@ export class Game {
 
   update() {
     this.currCells = this.currCells.nextGeneration();
-    console.log("Running next generation.");
-    console.log(this.currCells.cells);
+    // console.log("Running next generation.");
+    // console.log(this.currCells.cells);
   }
 
   run() {
