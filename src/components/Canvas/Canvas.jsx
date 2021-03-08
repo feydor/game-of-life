@@ -1,12 +1,14 @@
 import { useEffect } from "react";
-import * as THREE from 'three';
 import style from "./Canvas.module.css";
 import * as GOL from "../../game/gameoflife";
 
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
+import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import InputManager from "../InputManager/InputManager";
-import {OBJLoader} from 'three-obj-mtl-loader';
-// import {WebGLRenderTarget} from "three";
-const OrbitControls = require('three-orbit-controls')(THREE);
 
 // globals
 const globals = {
@@ -18,22 +20,35 @@ let then;
 const inputManager = new InputManager();
 const gGame = new GOL.Game();
 
+// three.js globals
 let camera;
 let renderer;
 let scene;
 
-let materials = {
+const materials = {
   field: undefined,
   isAlive: undefined,
   isDead: undefined,
 };
-let lights = {};
+const lights = {
+  topLight: undefined,
+  bottomLight: undefined,
+  hemisphereLight: undefined,
+};
+const models = {
+  fox: undefined,
+  llama: undefined,
+  sheep: undefined,
+  bunny: undefined,
+  cell: undefined,
+}
+
 let gSphere;
 let gField;
 let gCells = new Array(gGame.WIDTH * gGame.HEIGHT);
-let cellGeom;
-let bunnyGeom;
-let gBunny;
+const gMixers = [];
+const gMixerInfos = [];
+const gClock = new THREE.Clock();
 
 /**
  * for webgl rendering
@@ -41,18 +56,17 @@ let gBunny;
  */
 const Canvas = (props) => {
   
-  const init = () => {
+  const init = async () => {
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setSize( props.width, props.height );
 
     // define a frustum
-    const fov = 95; // 70
+    const fov = 65; // 70
     const aspect = props.width / props.height;
     const near = 0.1;
     const far = 30000;
     camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
-    camera.position.set(1200, -250, 20000);
     camera.position.z = 1000;
 
     // init mouse interaction
@@ -65,7 +79,7 @@ const Canvas = (props) => {
     scene = new THREE.Scene();
 
     // init the skybox
-    const skyboxMaterials = createMaterialArray('skybox/darkworld.jpg', 6);
+    const skyboxMaterials = createMaterialArray('skybox/island.jpg', 6);
     const skyboxGeo = new THREE.BoxGeometry(1000, 1000, 1000); 
     const skybox = new THREE.Mesh( skyboxGeo, skyboxMaterials );
     scene.add( skybox );
@@ -89,7 +103,7 @@ const Canvas = (props) => {
 
     initMaterials();
 
-    initObjects();
+    await initObjects();
     
     renderer.setAnimationLoop( render );
   };
@@ -111,9 +125,6 @@ function render(now) {
   globals.deltaTime = Math.min(globals.time - then, 1 / 20); // limit deltaTime
   then = globals.time;
   
-  // mesh.rotation.x = globals.time;
-  // mesh.rotation.y = globals.time / 2000;
-
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
@@ -121,9 +132,14 @@ function render(now) {
   }
 
   // update GoL state
-  if (now % 60) {
+  if (Math.trunc(now) % 6 == 0) {
       gGame.update();
-      // updateCells();
+      updateCells();
+  }
+
+  // update animations
+  for (const {mixer} of gMixerInfos) {
+    mixer.update(gClock.getDelta());
   }
 
   // update sphere inputs
@@ -131,6 +147,15 @@ function render(now) {
   if (inputManager.isDown("ArrowLeft")) gSphere.rotation.y -= globals.deltaRotation;
   if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
   if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
+
+  // update currently playing animation
+  if (inputManager.justPressed("Enter")) {
+    const mixerInfo = gMixerInfos[1]; // range between 0 and 7
+    if (!mixerInfo) {
+      return;
+    }
+    playNextAction(mixerInfo);
+  }
 
   // gameObjectManager.update()
   inputManager.update();
@@ -146,28 +171,6 @@ function resizeRendererToDisplaySize(renderer) {
     renderer.setSize(width, height, false);
   }
   return needResize;
-}
-
-function gameToField(game) {
-  const geometry = new THREE.SphereGeometry();
-  const isAliveMaterial = new THREE.MeshBasicMaterial({color: 'black'});
-  const isDeadMaterial = new THREE.MeshBasicMaterial({color: 'white'});
-
-  for (let y = 0; y < game.HEIGHT; y++) {
-    for (let x = 0; x < game.WIDTH; x++) {
-      let isAlive = game.currCells.getCellState(x, y);
-      const cellMaterial = (isAlive) ? isAliveMaterial : isDeadMaterial;
-
-      let position = latLongToVector3(y, x, 600, 2);
-
-      let cellGeom = new THREE.BoxGeometry(1, 1, 1);
-      let cellMesh = new THREE.Mesh(cellGeom, cellMaterial);
-
-      // cellMesh.position = position;
-
-      // sphere.merge(cellMesh);
-    }
-  }
 }
 
 /**
@@ -209,92 +212,133 @@ function initMaterials() {
 
   // cell is dead material
   materials.isDead = new THREE.MeshPhongMaterial({
-    map: textureLoader.load('light_square.jpg')
+    map: textureLoader.load('light_square.jpg'),
+    transparent: true,
+    opacity: 0.0,
   });
   //
   // cell is alive material
   materials.isAlive = new THREE.MeshPhongMaterial({
-    map: textureLoader.load('dark_square.jpg')
+    map: textureLoader.load('light_square.jpg')
   });
 }
 
 function initLights() {
   // top light
   lights.topLight = new THREE.PointLight();
-  lights.topLight.position.set(0, 150, 0);
+  lights.topLight.position.set(0, 150, 0.1);
   lights.topLight.intensity = 1.0;
+  
+  // bottom light
+  lights.bottomLight = new THREE.PointLight();
+  lights.bottomLight.position.set(0, -15, 0.1);
+  lights.bottomLight.intensity = 1.0;
 
+  // hemisphere light
+  lights.hemisphereLight = new THREE.HemisphereLight(0xB1E1FF, 0xB97A20, 1.0);
   // add the lights in the scene
-  scene.add(lights.topLight);
+  scene.add(lights.hemisphereLight);
+  // scene.add(lights.topLight);
+  // scene.add(lights.bottomLight);
 }
 
-function initObjects() {
+async function initObjects() {
   let fieldGeom = new THREE.PlaneGeometry( 10, 10 ); // 10x10 board
   gField = new THREE.Mesh( fieldGeom, materials.field );   
-  gField.position.set(5, 5, 0); // align on (0, 0)
+  gField.position.set(0, 0, 0); // align on (0, 0)
   scene.add( gField );
 
-  cellGeom = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
-
+  models.cell = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
 
   // init bunny model
-  var bunnyMaterial = new THREE.MeshPhongMaterial( { color: 'white' } );
-  var loader = new OBJLoader();
-  loader.load( 'big-buck-bunny.obj',
-    function( obj ){
-      obj.traverse( function( child ) {
-        if ( child instanceof THREE.Mesh ) {
-          // console.log(child.geometry);
-          bunnyGeom = child.geometry; // TODO: Convert from BufferGeometry to Geometry???
-          console.log(bunnyGeom)
-          child.material = bunnyMaterial;
-        }
-      } );
-      // scene.add( obj );
-      //
+  let bunnyMaterial = new THREE.MeshPhongMaterial( { color: 'white' } );
+  let loader = new OBJLoader();
 
-      let cellMaterial;
-
-      // init the Game of Life cells on gField
-      for (let y = 0; y < gGame.HEIGHT; y++) {
-        for (let x = 0; x < gGame.WIDTH; x++) {
-          const isAlive = gGame.currCells.getCellState(x, y);
-          cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
-
-          // load cell, init positions, and add to scene
-          console.log(bunnyGeom)
-          const cell = new THREE.Mesh( bunnyGeom, cellMaterial ); 
-          cell.position.set(x + 0.5, y + 0.5, 0.01);
-          cell.isAlive = isAlive;
-
-          gCells[x + y * gGame.HEIGHT] = cell;
-
-          scene.add( cell );
-        }
-      }
-
-      scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
-
-    },
-    function( xhr ){
-      console.log( (xhr.loaded / xhr.total * 100) + "% loaded")
-    },
-    function( err ){
-      console.error( "Error loading 'big-buck-bunny.obj'")
+  let bunnyObj = await loader.loadAsync('big-buck-bunny.obj', obj => console.log( (obj.loaded / obj.total * 100) + "% loaded." ));
+  
+  bunnyObj.traverse( (child) => {
+    if (child instanceof THREE.Mesh) {
+      models.bunny = child.geometry;
+      child.material = bunnyMaterial;
     }
-  );
+  });
 
-  /*
-  let loader = new THREE.BufferGeometryLoader();
-    loader.load('big-buck-bunny.obj', (geom) => {
-      bunnyGeom = geom;
-    },
-      function ( xhr ) {
-        console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' ); 
-      }
-    );
-  */
+  // load animal models
+  const fbxLoader = new FBXLoader();
+  const sheepFbx = await fbxLoader.loadAsync('sheep.fbx');
+  models.sheep = { fbx: sheepFbx };
+  console.log(models.sheep.fbx);
 
+  initAnimations();
+
+  // init the Game of Life cells on gField
+  let cellMaterial;
+  for (let y = 0; y < gGame.HEIGHT; y++) {
+    for (let x = 0; x < gGame.WIDTH; x++) {
+      const isAlive = gGame.currCells.getCellState(x, y);
+      cellMaterial = (isAlive) ? materials.isAlive : materials.IsDead;
+
+      // load cell, init positions, and add to scene
+      const cell = new THREE.Mesh( models.bunny, cellMaterial ); 
+      cell.scale.set(0.9, 0.9, 0.9);
+      cell.position.set(x - 4.5, y - 4.5, 0.01);
+
+      gCells[x + y * gGame.HEIGHT] = cell;
+
+      scene.add( cell );
+    }
+  }
+
+  scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
+
+}
+
+/**
+ * prepare animations
+ */
+function initAnimations() {
+  const animsByName = {};
+  models.sheep.fbx.animations.forEach(clip => {
+      animsByName[clip.name] = clip;
+  });
+  models.sheep.animations = animsByName;
+
+  console.log(models.sheep.animations);
+
+  // const clonedScene = SkeletonUtils.clone(models.fox.fbx.scene);
+  const root = new THREE.Object3D();
+  // root.add(clonedScene);
+  root.add(models.sheep.fbx);
+  scene.add(root);
+  root.position.x = -1;
+  root.position.z = 1;
+  root.rotateY(90);
+  root.scale.set(0.005, 0.005, 0.005);
+
+  const mixer = new THREE.AnimationMixer(root);
+  const clipActions = Object.values(models.sheep.animations).map((clip) => {
+    return mixer.clipAction(clip);
+  });
+  const mixerInfo = {
+    mixer,
+    clipActions,
+    id: 0,
+  };
+  gMixerInfos.push(mixerInfo);
+  playNextAction(mixerInfo);
+}
+
+function playNextAction(mixerInfo) {
+  const {clipActions, id} = mixerInfo;
+  const nextId = (id + 1) % clipActions.length;
+  mixerInfo.id = nextId;
+  clipActions.forEach((action, idx) => {
+    const enabled = idx === id;
+    action.enabled = enabled;
+    if (enabled) {
+      action.play();
+    }
+  });
 }
 
 function updateCells() {
@@ -305,8 +349,6 @@ function updateCells() {
       
       // if change to cell state, update material
       cell.material = (newState) ? materials.isAlive : materials.isDead;
-      if (cell.isAlive !== newState) {
-      }
     }
   }
 }
