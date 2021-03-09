@@ -100,7 +100,7 @@ export class CellMap implements CellMapInterface {
           } 
         } else {
           // cell is currently dead
-          if (neighborCount == 3) {
+          if (neighborCount === 3) {
             nextMap.setCell(x, y);
           }
         }
@@ -114,28 +114,32 @@ export class CellMap implements CellMapInterface {
 export class Game {
   currCells: CellMap;
   nextCells: CellMap;
-  readonly HEIGHT = 10;
-  readonly WIDTH = 10;
+  HEIGHT = 17;
+  WIDTH = 17;
   isRunning: boolean;
 
-  constructor() {
+  /* variable size constructor */
+  constructor(height: number = 17, width: number = 17) {
+    this.HEIGHT = height;
+    this.WIDTH = width;
     this.currCells = new CellMap(this.HEIGHT, this.WIDTH);
     this.nextCells = new CellMap(this.HEIGHT, this.WIDTH);
     this.isRunning = false;
 
     // TODO: Have difficulty modes/ random starting seeds;
     // set up a glider, from top to bottom
+    /*
     this.currCells.setCell(5, 5);
     this.currCells.setCell(6, 6);
     this.currCells.setCell(4, 7);
     this.currCells.setCell(5, 7);
     this.currCells.setCell(6, 7);
+    */
+   this.setUpGosperGun();
   }
 
   update() {
     this.currCells = this.currCells.nextGeneration();
-    // console.log("Running next generation.");
-    // console.log(this.currCells.cells);
   }
 
   run() {
@@ -148,6 +152,57 @@ export class Game {
     console.log(instructions);
   }
 
+  setUpGosperGun() {
+    this.currCells.setCell(5, 15);
+    this.currCells.setCell(6, 15);
+    this.currCells.setCell(6, 16);
+    this.currCells.setCell(5, 16);
+
+    // queen bee
+    this.currCells.setCell(14, 15);
+    this.currCells.setCell(15, 16);
+    this.currCells.setCell(16, 17);
+    this.currCells.setCell(17, 17);
+
+    this.currCells.setCell(19, 16);
+    this.currCells.setCell(20, 15);
+    this.currCells.setCell(20, 14);
+    this.currCells.setCell(20, 13);
+    this.currCells.setCell(21, 14); // tip
+    this.currCells.setCell(19, 12);
+    
+    this.currCells.setCell(18, 14);
+
+    this.currCells.setCell(17, 11);
+    this.currCells.setCell(16, 11);
+    this.currCells.setCell(15, 12);
+    this.currCells.setCell(14, 13);
+    this.currCells.setCell(14, 14);
+
+    // 2nd bee
+    this.currCells.setCell(24, 15);
+    this.currCells.setCell(24, 16);
+    this.currCells.setCell(24, 17);
+    this.currCells.setCell(25, 17);
+    this.currCells.setCell(25, 16);
+    this.currCells.setCell(25, 15);
+
+    // bottom wing
+    this.currCells.setCell(26, 14);
+    this.currCells.setCell(28, 14);
+    this.currCells.setCell(28, 13);
+    // topwing
+    this.currCells.setCell(25, 18);
+    this.currCells.setCell(28, 18);
+    this.currCells.setCell(28, 19);
+
+    // last block
+    this.currCells.setCell(37, 17);
+    this.currCells.setCell(38, 17);
+    this.currCells.setCell(38, 16);
+    this.currCells.setCell(37, 16);
+  }
+
   /**
    * returns a string containing an ascii-representation of the current cells
    */
@@ -155,8 +210,8 @@ export class Game {
     let out = "";
     for (let y = 0; y < this.currCells.height; y++) {
       for (let x = 0; x < this.currCells.width; x++) {
-        if (x == 0 || x == this.currCells.width - 1) out += "|";
-        if (y == 0 || y == this.currCells.height - 1) out += "_";
+        if (x === 0 || x === this.currCells.width - 1) out += "|";
+        if (y === 0 || y === this.currCells.height - 1) out += "_";
         out += this.currCells.getCellState(x, y) ? "1" : "0";
       }
     }

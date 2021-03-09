@@ -1,16 +1,14 @@
-/* components.js - components to be stored in a GameObjectManager */
+/* GameObject.js - game objects to be stored in a GameObjectManager */
 import { AnimationMixer, Matrix4, Frustum, Object3D } from 'three';
-import { SkeletonUtils } from'three/examples/jsm/utils/SkeletonUtils.js';
+import { GameState, globals } from '../GameState/GameState';
 
-import * as Game from '../Canvas/Canvas';
-
-// Base for all components
-class Component {
+// Base for all game objects
+export class Component {
   constructor(gameObject) {
     this.gameObject = gameObject;
   }
 
-  update() { }
+  update() {}
 }
 
 /**
@@ -29,8 +27,8 @@ export class SkinInstance extends Component {
     this.actions = {};
   }
 
-  setAnimation(animName) {
-    const clip = this.model.animations[animName];
+  setAnimation(animationName) {
+    const clip = this.model.animations[animationName];
 
     // turn off all current actions
     for (const action of Object.values(this.actions)) {
@@ -42,15 +40,15 @@ export class SkinInstance extends Component {
     action.enabled = true;
     action.reset();
     action.play();
-    this.actions[animName] = action;
+    this.actions[animationName] = action;
   }
 
   update() {
-    this.mixer.update(Game.globals.deltaTime);
+    this.mixer.update(globals.clock.getDelta());
   }
 }
 
-export class CameraInfo extends Component {
+export class Camera extends Component {
   constructor(gameObject) {
     super(gameObject);
     this.projScreenMatrix = new Matrix4();
@@ -58,7 +56,7 @@ export class CameraInfo extends Component {
   }
 
   update() {
-    const {camera} = Game.globals;
+    const {camera} = globals;
     this.projScreenMatrix.multiplyMatrices(
       camera.projectionMatrix,
       camera.matrixWorldInverse);
@@ -69,10 +67,26 @@ export class CameraInfo extends Component {
 export class Animal extends Component {
   constructor(gameObject, model) {
     super(gameObject);
-    const skinInstance = gameObject.addComponent(SkinInstance, model);
-    skinInstance.mixer.timeScale = Game.globals.moveSpeed / 4;
-    skinInstance.setAnimation('Armature|Idle');
+    const skinInstance = new SkinInstance(gameObject, model);
+    gameObject.addComponent(skinInstance);
+    skinInstance.mixer.timeScale = globals.moveSpeed / 4;
 
-    skinInstance.animRoot.scale.set(0.005, 0.005, 0.005); // set default size
+    skinInstance.setAnimation('Armature|Jump');
   }
+
+  update() {
+    // this.gameObject.transform.position.x++;
+    /*
+    for (let y = 0; y < GameState.HEIGHT; y++) {
+      for (let x = 0; x < GameState.WIDTH; x++) {
+        let newState = GameState.currCells.getCellState(x, y);
+        
+        
+        // if change to cell state, update material
+        cell.material = (newState) ? materials.isAlive : materials.isDead;
+      }
+    }
+    */
+  }
+
 }

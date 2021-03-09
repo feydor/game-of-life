@@ -1,32 +1,19 @@
 import { useEffect } from "react";
 import style from "./Canvas.module.css";
-import * as GOL from "../../game/gameoflife";
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+// import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 import InputManager from "../InputManager/InputManager";
-import AnimationManager from "../AnimationManager/AnimationManager";
 import GameObjectManager from "../GameObjectManager/GameObjectManager";
-import * as Components from "../Component/Component.js";
+import * as Components from "../Components/Components.js";
+import { GameState, globals } from "../GameState/GameState.ts"; 
 
-// globals
-export const globals = {
-  time: 0,
-  deltaTime: 0,
-  deltaRotation: 0.01,
-  moveSpeed: 16,
-  camera: undefined,
-  cameraInfo: undefined,
-};
 let then;
 const inputManager = new InputManager();
-const gAnimManager = new AnimationManager();
 const gGameObjectManager = new GameObjectManager();
-const gGame = new GOL.Game();
 
 // three.js globals
 let renderer;
@@ -42,6 +29,12 @@ const lights = {
   bottomLight: undefined,
   hemisphereLight: undefined,
 };
+
+/**
+ * @example:
+ * - models.fox.animations - array of AnimationClips
+ * - models.fox.fbx - model returned by FBXLoader
+ */
 const models = {
   fox: undefined,
   llama: undefined,
@@ -52,10 +45,7 @@ const models = {
 
 let gSphere;
 let gField;
-let gCells = new Array(gGame.WIDTH * gGame.HEIGHT);
-const gMixers = [];
-const gMixerInfos = [];
-const gClock = new THREE.Clock();
+let gCells = new Array(GameState.WIDTH * GameState.HEIGHT);
 
 /**
  * for webgl rendering
@@ -84,21 +74,6 @@ const Canvas = (props) => {
     const skybox = new THREE.Mesh( skyboxGeo, skyboxMaterials );
     scene.add( skybox );
 
-    // init the field sphere
-    const radius = 1;
-    const widthSegments = 24;
-    const heightSegments = 10;
-    const sphere = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
-
-    const loader = new THREE.TextureLoader();
-    const gridMaterial = new THREE.MeshBasicMaterial({
-      flatShading: true,
-      map: loader.load('grid.jpg')
-    });
-    
-    gSphere = new THREE.Mesh( sphere, gridMaterial );
-    // scene.add( gSphere );
-
     initLights();
 
     initMaterials();
@@ -107,9 +82,12 @@ const Canvas = (props) => {
 
     initObjects();
 
+    /*
     const sheepObject = gGameObjectManager.createGameObject(scene, "sheep");
-    sheepObject.addComponent(Components.Animal, models.sheep);
+    const sheepComponent = new Components.Animal(sheepObject, models.sheep);
+    sheepObject.addComponent(sheepComponent);
     sheepObject.transform.position.x = 1;
+    */
     
     renderer.setAnimationLoop( render );
   };
@@ -138,23 +116,9 @@ function render(now) {
   }
 
   // update GoL state
-  if (Math.trunc(now) % 6 == 0) {
-      gGame.update();
+  if (Math.trunc(now) % globals.gameSpeed === 0) {
+      GameState.update();
       updateCells();
-  }
-
-  // update animations
-  for (const {mixer} of gAnimManager.mixers()) {
-    mixer.update(gClock.getDelta());
-  }
-  
-  // update currently playing animation
-  if (inputManager.justPressed("Enter")) {
-    const mixerInfo = gMixerInfos[1]; // range between 0 and 7
-    if (!mixerInfo) {
-      return;
-    }
-    gAnimManager.playNextAction(mixerInfo);
   }
 
   // update sphere inputs
@@ -162,7 +126,6 @@ function render(now) {
   if (inputManager.isDown("ArrowLeft")) gSphere.rotation.y -= globals.deltaRotation;
   if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
   if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
-
 
   gGameObjectManager.update()
 
@@ -222,9 +185,11 @@ function initCamera(width, height) {
   globals.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 
   globals.camera.position.z = 1000;
+  globals.camera.position.y = 0;
   
   const cameraObject = gGameObjectManager.createGameObject(globals.camera, 'camera');
-  globals.cameraInfo = cameraObject.addComponent(Components.CameraInfo);
+  let cameraComponent = new Components.Camera(cameraObject);
+  cameraObject.addComponent(cameraComponent);
 }
 
 function initMaterials() {
@@ -232,19 +197,24 @@ function initMaterials() {
 
   // board material
   materials.field = new THREE.MeshBasicMaterial({
-    map: textureLoader.load('grid.jpg')
+    color: 'white',
+    side: THREE.DoubleSide
   });
 
   // cell is dead material
   materials.isDead = new THREE.MeshPhongMaterial({
-    map: textureLoader.load('light_square.jpg'),
+    name: 'isdead',
+    color: 'white',
     transparent: true,
     opacity: 0.0,
+    flatShading: true,
   });
   //
   // cell is alive material
   materials.isAlive = new THREE.MeshPhongMaterial({
-    map: textureLoader.load('light_square.jpg')
+    name: 'isalive',
+    map: textureLoader.load('dark_square.jpg'),
+    flatShading: true,
   });
 }
 
@@ -268,87 +238,85 @@ function initLights() {
 }
 
 async function initModelsAndAnimations() {
-  // init bunny model
-  let loader = new OBJLoader();
-  let bunnyObj = await loader.loadAsync('big-buck-bunny.obj');
-  bunnyObj.traverse( (child) => {
-    if (child instanceof THREE.Mesh) {
-      models.bunny = child.geometry;
-    }
-  });
+  let loader = new FBXLoader();
+  let llamaFbx = await loader.loadAsync('llama.fbx');
+  models.llama = { fbx: llamaFbx };
 
   // load animal models
   const fbxLoader = new FBXLoader();
   const sheepFbx = await fbxLoader.loadAsync('sheep.fbx');
-  models.sheep = { fbx: sheepFbx };
-  console.log(models.sheep.fbx);
+  models.sheep = { fbx: sheepFbx, mesh: sheepFbx.children[0] };
+  console.log(models.sheep.mesh);
 
   // init animations
   let animsByName = {};                                                                                                      
+  models.llama.fbx.animations.forEach(clip => { 
+    animsByName[clip.name] = clip
+    console.log('  ', clip.name);
+  });                                                                   
+  models.llama.animations = animsByName;
+  
+  animsByName = {};
+
   models.sheep.fbx.animations.forEach(clip => { 
     animsByName[clip.name] = clip
     console.log('  ', clip.name);
   });                                                                   
   models.sheep.animations = animsByName;
   console.log(models.sheep.animations);
-
-  const root = new THREE.Object3D();
-  root.add(models.sheep.fbx);
-  root.position.x = -1;
-  root.position.z = 1;
-  root.rotateY(90);
-  root.scale.set(0.005, 0.005, 0.005);
-
-  const mixer = new THREE.AnimationMixer(root);
-  const actions = Object.values(models.sheep.animations).map((clip) => {
-    return mixer.clipAction(clip);
-  });
-  const mixerInfo = {
-    mixer,
-    actions,
-    index: 0
-  };
-  gAnimManager.push(mixerInfo);
-  gAnimManager.playNextAction(mixerInfo);
 }
 
 function initObjects() {
-  let fieldGeom = new THREE.PlaneGeometry( 10, 10 ); // 10x10 board
+  let fieldGeom = new THREE.PlaneGeometry( 4.5, 4.5 ); // 10x10 board
   gField = new THREE.Mesh( fieldGeom, materials.field );   
-  gField.position.set(0, 0, 0); // align on (0, 0)
+  gField.position.set(0, 0, -0.05); // align on (0, 0)
+  gField.scale.set(2.5, 2.5, 2.5);
   scene.add( gField );
 
-  models.cell = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
+  models.cell = new THREE.BoxGeometry(0.33, 0.33, 0.33); // 1x1 cell
   
   // init the Game of Life cells on gField
-  let cellMaterial;
-  for (let y = 0; y < gGame.HEIGHT; y++) {
-    for (let x = 0; x < gGame.WIDTH; x++) {
-      const isAlive = gGame.currCells.getCellState(x, y);
-      cellMaterial = (isAlive) ? materials.isAlive : materials.IsDead;
+  for (let y = 0; y < GameState.HEIGHT; y++) {
+    for (let x = 0; x < GameState.WIDTH; x++) {
+      const isAlive = GameState.currCells.getCellState(x, y);
+      const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
 
-      // load cell, init positions, and add to scene
-      const cell = new THREE.Mesh( models.bunny, cellMaterial ); 
+      const cell = new THREE.Mesh( models.cell, cellMaterial ); 
       cell.scale.set(0.9, 0.9, 0.9);
-      cell.position.set(x - 4.5, y - 4.5, 0.01);
+      cell.position.set((x - 14.33) * 0.33, (y - 14.33) * 0.33, 0.01);
 
-      gCells[x + y * gGame.HEIGHT] = cell;
+      gCells[x + y * GameState.HEIGHT] = cell;
 
       scene.add( cell );
     }
   }
 
-  scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
+  // add grid
+  const size = 10;
+  const divisions = 50;
+  const colorCenterLine = 'black';
+  const colorGrid = 'black';
+
+  const gridHelper = new THREE.GridHelper( size, divisions, colorCenterLine, colorGrid );
+  gridHelper.rotateX(Math.PI / 2);
+  scene.add( gridHelper );
+
+  scene.add( new THREE.AxesHelper()); // to be able to see the xyz axis
 }
 
 function updateCells() {
-  for (let y = 0; y < gGame.HEIGHT; y++) {
-    for (let x = 0; x < gGame.WIDTH; x++) {
-      let cell = gCells[x + y * gGame.HEIGHT];
-      let newState = gGame.currCells.getCellState(x, y);
-      
+  for (let y = 0; y < GameState.HEIGHT; y++) {
+    for (let x = 0; x < GameState.WIDTH; x++) {
+      let cell = gCells[x + y * GameState.HEIGHT];
+      let newState = GameState.currCells.getCellState(x, y);
+     
       // if change to cell state, update material
-      cell.material = (newState) ? materials.isAlive : materials.isDead;
+      if (newState && cell.material.name === materials.isDead.name) {
+        cell.material = materials.isAlive; 
+      } else if (!newState && cell.material.name === materials.isAlive.name) {
+        cell.material = materials.isDead; 
+      }
+      // cell.material = (newState) ? materials.isAlive : materials.isDead;
     }
   }
 }
