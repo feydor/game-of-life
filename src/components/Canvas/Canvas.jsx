@@ -5,23 +5,30 @@ import * as GOL from "../../game/gameoflife";
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils.js';
+
 import InputManager from "../InputManager/InputManager";
+import AnimationManager from "../AnimationManager/AnimationManager";
+import GameObjectManager from "../GameObjectManager/GameObjectManager";
+import * as Components from "../Component/Component.js";
 
 // globals
-const globals = {
+export const globals = {
   time: 0,
   deltaTime: 0,
-  deltaRotation: 0.01
+  deltaRotation: 0.01,
+  moveSpeed: 16,
+  camera: undefined,
+  cameraInfo: undefined,
 };
 let then;
 const inputManager = new InputManager();
+const gAnimManager = new AnimationManager();
+const gGameObjectManager = new GameObjectManager();
 const gGame = new GOL.Game();
 
 // three.js globals
-let camera;
 let renderer;
 let scene;
 
@@ -60,17 +67,10 @@ const Canvas = (props) => {
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setSize( props.width, props.height );
 
-    // define a frustum
-    const fov = 65; // 70
-    const aspect = props.width / props.height;
-    const near = 0.1;
-    const far = 30000;
-    camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-
-    camera.position.z = 1000;
+    initCamera(props.width, props.height);
 
     // init mouse interaction
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new OrbitControls(globals.camera, renderer.domElement);
     controls.enablePan = true;
     controls.minDistance = 1.0;
     controls.maxDistance = 10;
@@ -103,7 +103,13 @@ const Canvas = (props) => {
 
     initMaterials();
 
-    await initObjects();
+    await initModelsAndAnimations();
+
+    initObjects();
+
+    const sheepObject = gGameObjectManager.createGameObject(scene, "sheep");
+    sheepObject.addComponent(Components.Animal, models.sheep);
+    sheepObject.transform.position.x = 1;
     
     renderer.setAnimationLoop( render );
   };
@@ -122,13 +128,13 @@ const Canvas = (props) => {
  */
 function render(now) {
   globals.time  = now * 0.001; // to seconds
-  globals.deltaTime = Math.min(globals.time - then, 1 / 20); // limit deltaTime
+  globals.deltaTime = Math.min(globals.time - then, 1 / 20); // limit deltaTime to 1/20 of a second
   then = globals.time;
   
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
+    globals.camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    globals.camera.updateProjectionMatrix();
   }
 
   // update GoL state
@@ -138,8 +144,17 @@ function render(now) {
   }
 
   // update animations
-  for (const {mixer} of gMixerInfos) {
+  for (const {mixer} of gAnimManager.mixers()) {
     mixer.update(gClock.getDelta());
+  }
+  
+  // update currently playing animation
+  if (inputManager.justPressed("Enter")) {
+    const mixerInfo = gMixerInfos[1]; // range between 0 and 7
+    if (!mixerInfo) {
+      return;
+    }
+    gAnimManager.playNextAction(mixerInfo);
   }
 
   // update sphere inputs
@@ -148,18 +163,11 @@ function render(now) {
   if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
   if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
 
-  // update currently playing animation
-  if (inputManager.justPressed("Enter")) {
-    const mixerInfo = gMixerInfos[1]; // range between 0 and 7
-    if (!mixerInfo) {
-      return;
-    }
-    playNextAction(mixerInfo);
-  }
 
-  // gameObjectManager.update()
+  gGameObjectManager.update()
+
   inputManager.update();
-  renderer.render(scene, camera);
+  renderer.render(scene, globals.camera);
 }
 
 function resizeRendererToDisplaySize(renderer) {
@@ -202,6 +210,23 @@ function createMaterialArray(filename, n) {
   return materialArr;
 }
 
+/**
+ * @param {number} width, height
+ */
+function initCamera(width, height) {
+  // define a frustum
+  const fov = 65; // 70
+  const aspect = width / height;
+  const near = 0.1;
+  const far = 30000;
+  globals.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+
+  globals.camera.position.z = 1000;
+  
+  const cameraObject = gGameObjectManager.createGameObject(globals.camera, 'camera');
+  globals.cameraInfo = cameraObject.addComponent(Components.CameraInfo);
+}
+
 function initMaterials() {
   let textureLoader = new THREE.TextureLoader();
 
@@ -242,24 +267,13 @@ function initLights() {
   // scene.add(lights.bottomLight);
 }
 
-async function initObjects() {
-  let fieldGeom = new THREE.PlaneGeometry( 10, 10 ); // 10x10 board
-  gField = new THREE.Mesh( fieldGeom, materials.field );   
-  gField.position.set(0, 0, 0); // align on (0, 0)
-  scene.add( gField );
-
-  models.cell = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
-
+async function initModelsAndAnimations() {
   // init bunny model
-  let bunnyMaterial = new THREE.MeshPhongMaterial( { color: 'white' } );
   let loader = new OBJLoader();
-
-  let bunnyObj = await loader.loadAsync('big-buck-bunny.obj', obj => console.log( (obj.loaded / obj.total * 100) + "% loaded." ));
-  
+  let bunnyObj = await loader.loadAsync('big-buck-bunny.obj');
   bunnyObj.traverse( (child) => {
     if (child instanceof THREE.Mesh) {
       models.bunny = child.geometry;
-      child.material = bunnyMaterial;
     }
   });
 
@@ -269,8 +283,43 @@ async function initObjects() {
   models.sheep = { fbx: sheepFbx };
   console.log(models.sheep.fbx);
 
-  initAnimations();
+  // init animations
+  let animsByName = {};                                                                                                      
+  models.sheep.fbx.animations.forEach(clip => { 
+    animsByName[clip.name] = clip
+    console.log('  ', clip.name);
+  });                                                                   
+  models.sheep.animations = animsByName;
+  console.log(models.sheep.animations);
 
+  const root = new THREE.Object3D();
+  root.add(models.sheep.fbx);
+  root.position.x = -1;
+  root.position.z = 1;
+  root.rotateY(90);
+  root.scale.set(0.005, 0.005, 0.005);
+
+  const mixer = new THREE.AnimationMixer(root);
+  const actions = Object.values(models.sheep.animations).map((clip) => {
+    return mixer.clipAction(clip);
+  });
+  const mixerInfo = {
+    mixer,
+    actions,
+    index: 0
+  };
+  gAnimManager.push(mixerInfo);
+  gAnimManager.playNextAction(mixerInfo);
+}
+
+function initObjects() {
+  let fieldGeom = new THREE.PlaneGeometry( 10, 10 ); // 10x10 board
+  gField = new THREE.Mesh( fieldGeom, materials.field );   
+  gField.position.set(0, 0, 0); // align on (0, 0)
+  scene.add( gField );
+
+  models.cell = new THREE.PlaneGeometry( 1, 1, 1, 1 ); // 1x1 cell
+  
   // init the Game of Life cells on gField
   let cellMaterial;
   for (let y = 0; y < gGame.HEIGHT; y++) {
@@ -290,55 +339,6 @@ async function initObjects() {
   }
 
   scene.add( new THREE.AxesHelper(200) ); // to be able to see the xyz axis
-
-}
-
-/**
- * prepare animations
- */
-function initAnimations() {
-  const animsByName = {};
-  models.sheep.fbx.animations.forEach(clip => {
-      animsByName[clip.name] = clip;
-  });
-  models.sheep.animations = animsByName;
-
-  console.log(models.sheep.animations);
-
-  // const clonedScene = SkeletonUtils.clone(models.fox.fbx.scene);
-  const root = new THREE.Object3D();
-  // root.add(clonedScene);
-  root.add(models.sheep.fbx);
-  scene.add(root);
-  root.position.x = -1;
-  root.position.z = 1;
-  root.rotateY(90);
-  root.scale.set(0.005, 0.005, 0.005);
-
-  const mixer = new THREE.AnimationMixer(root);
-  const clipActions = Object.values(models.sheep.animations).map((clip) => {
-    return mixer.clipAction(clip);
-  });
-  const mixerInfo = {
-    mixer,
-    clipActions,
-    id: 0,
-  };
-  gMixerInfos.push(mixerInfo);
-  playNextAction(mixerInfo);
-}
-
-function playNextAction(mixerInfo) {
-  const {clipActions, id} = mixerInfo;
-  const nextId = (id + 1) % clipActions.length;
-  mixerInfo.id = nextId;
-  clipActions.forEach((action, idx) => {
-    const enabled = idx === id;
-    action.enabled = enabled;
-    if (enabled) {
-      action.play();
-    }
-  });
 }
 
 function updateCells() {
