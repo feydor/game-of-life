@@ -135,7 +135,6 @@ export class Game {
     this.currCells.setCell(5, 7);
     this.currCells.setCell(6, 7);
     */
-   this.setUpGosperGun();
   }
 
   update() {
@@ -201,6 +200,15 @@ export class Game {
     this.currCells.setCell(38, 17);
     this.currCells.setCell(38, 16);
     this.currCells.setCell(37, 16);
+  }
+
+  setUpRandom() {
+    for (let y = 0; y < this.currCells.height; y++) {
+      for (let x = 0; x < this.currCells.width; x++) {
+        let rand = Math.floor(Math.random() * this.HEIGHT ) + 1; // rand(1, this.Height)
+        if (rand % 2 === 0) this.currCells.setCell(x, y);
+      }
+    }
   }
 
   /**

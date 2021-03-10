@@ -84,9 +84,28 @@ test("iteration works", () => {
   }
 });
 
-/*
-test("Game update works", () => {
-  let game = new GOL.Game(); // initial state is a glider
-  game.update();
+test("testing Game update speed", () => {
+  const game = new GOL.Game(40, 40); // initial state is a gosper gun
+  game.setUpGosperGun();
+
+  const MAX = 10000; // iterations
+  let n = 0;
+  let t0Arr = new Array(MAX);
+  let t1Arr = new Array(MAX);
+  while (n < MAX) {
+    t0Arr[n] = performance.now();
+    game.update();
+    t1Arr[n] = performance.now();
+    n++;
+  }
+
+  let avgArr = new Array(1000);
+  for (let i = 0; i < MAX; i++) {
+    avgArr[i] = t1Arr[i] - t0Arr[i]; 
+  }
+
+  const total = avgArr.reduce((acc, curr) => acc + curr);
+  const avg = avgArr.reduce((acc, curr) =>  acc + curr) / MAX;
+
+  console.error('Average time taken to execute update function:'+ avg +' milliseconds; total time in ms: ' + total + ' with ' + MAX + ' iterations.');
 });
-*/

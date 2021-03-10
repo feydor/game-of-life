@@ -17,7 +17,7 @@ const gGameObjectManager = new GameObjectManager();
 
 // three.js globals
 let renderer;
-let scene;
+let scene = new THREE.Scene();
 
 const materials = {
   field: undefined,
@@ -43,7 +43,6 @@ const models = {
   cell: undefined,
 }
 
-let gSphere;
 let gField;
 let gCells = new Array(GameState.WIDTH * GameState.HEIGHT);
 
@@ -57,16 +56,30 @@ const Canvas = (props) => {
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setSize( props.width, props.height );
 
-    initCamera(props.width, props.height);
+    // init the camera
+
+    /*
+    const fov = 45; // 70
+    const aspect = props.width / props.height;
+    const near = 0.1;
+    const far = 30000;
+    globals.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    globals.camera.position.z = 10;
+    globals.camera.position.y = 0;
+    */
+    console.log(props.width + ' ' + props.height);
+    let aspect = 7 * (props.width / props.height);
+    globals.camera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
+    globals.camera.position.set(0, 0, 1);
+    globals.camera.zoom = 0.5;
+    scene.add( globals.camera );
 
     // init mouse interaction
     const controls = new OrbitControls(globals.camera, renderer.domElement);
-    controls.enablePan = true;
+    controls.enablePan = false;
     controls.minDistance = 1.0;
     controls.maxDistance = 10;
     controls.update();
-
-    scene = new THREE.Scene();
 
     // init the skybox
     const skyboxMaterials = createMaterialArray('skybox/island.jpg', 6);
@@ -82,6 +95,10 @@ const Canvas = (props) => {
 
     initObjects();
 
+    // save props.height and props.width in globals
+    globals.width = props.width;
+    globals.height = props.height;
+
     /*
     const sheepObject = gGameObjectManager.createGameObject(scene, "sheep");
     const sheepComponent = new Components.Animal(sheepObject, models.sheep);
@@ -89,14 +106,16 @@ const Canvas = (props) => {
     sheepObject.transform.position.x = 1;
     */
     
-    renderer.setAnimationLoop( render );
+    // renderer.setAnimationLoop( render );
+    setInterval( function () {
+      requestAnimationFrame( render );
+    }, 1000 / 60 ); // limit to 60fps
   };
 
   useEffect(() => {
     init();
     document.getElementById("canvas-container").appendChild(renderer.domElement);
   });
-
   return <div id="canvas-container" className={style.Canvas}></div>;
 };
 
@@ -104,10 +123,7 @@ const Canvas = (props) => {
  * a single tick of rendering
  * @param {number} now
  */
-function render(now) {
-  globals.time  = now * 0.001; // to seconds
-  globals.deltaTime = Math.min(globals.time - then, 1 / 20); // limit deltaTime to 1/20 of a second
-  then = globals.time;
+function render() {
   
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
@@ -116,20 +132,22 @@ function render(now) {
   }
 
   // update GoL state
-  if (Math.trunc(now) % globals.gameSpeed === 0) {
+  if (Math.trunc(globals.clock.getDelta()) % globals.gameSpeed === 0) {
       GameState.update();
       updateCells();
   }
 
   // update sphere inputs
+  /*
   if (inputManager.isDown("ArrowRight")) gSphere.rotation.y += globals.deltaRotation;
   if (inputManager.isDown("ArrowLeft")) gSphere.rotation.y -= globals.deltaRotation;
   if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
   if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
+  */
 
   gGameObjectManager.update()
 
-  inputManager.update();
+  // inputManager.update();
   renderer.render(scene, globals.camera);
 }
 
@@ -173,25 +191,6 @@ function createMaterialArray(filename, n) {
   return materialArr;
 }
 
-/**
- * @param {number} width, height
- */
-function initCamera(width, height) {
-  // define a frustum
-  const fov = 65; // 70
-  const aspect = width / height;
-  const near = 0.1;
-  const far = 30000;
-  globals.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-
-  globals.camera.position.z = 1000;
-  globals.camera.position.y = 0;
-  
-  const cameraObject = gGameObjectManager.createGameObject(globals.camera, 'camera');
-  let cameraComponent = new Components.Camera(cameraObject);
-  cameraObject.addComponent(cameraComponent);
-}
-
 function initMaterials() {
   let textureLoader = new THREE.TextureLoader();
 
@@ -213,7 +212,7 @@ function initMaterials() {
   // cell is alive material
   materials.isAlive = new THREE.MeshPhongMaterial({
     name: 'isalive',
-    map: textureLoader.load('dark_square.jpg'),
+    color: 'red',
     flatShading: true,
   });
 }
@@ -238,10 +237,6 @@ function initLights() {
 }
 
 async function initModelsAndAnimations() {
-  let loader = new FBXLoader();
-  let llamaFbx = await loader.loadAsync('llama.fbx');
-  models.llama = { fbx: llamaFbx };
-
   // load animal models
   const fbxLoader = new FBXLoader();
   const sheepFbx = await fbxLoader.loadAsync('sheep.fbx');
@@ -250,14 +245,6 @@ async function initModelsAndAnimations() {
 
   // init animations
   let animsByName = {};                                                                                                      
-  models.llama.fbx.animations.forEach(clip => { 
-    animsByName[clip.name] = clip
-    console.log('  ', clip.name);
-  });                                                                   
-  models.llama.animations = animsByName;
-  
-  animsByName = {};
-
   models.sheep.fbx.animations.forEach(clip => { 
     animsByName[clip.name] = clip
     console.log('  ', clip.name);
@@ -267,13 +254,14 @@ async function initModelsAndAnimations() {
 }
 
 function initObjects() {
-  let fieldGeom = new THREE.PlaneGeometry( 4.5, 4.5 ); // 10x10 board
+  let fieldGeom = new THREE.PlaneGeometry( globals.width / globals.width, globals.width / globals.height ); // 10x10 board
   gField = new THREE.Mesh( fieldGeom, materials.field );   
   gField.position.set(0, 0, -0.05); // align on (0, 0)
-  gField.scale.set(2.5, 2.5, 2.5);
+  gField.scale.set(10, 10, 10);
+  // gField.rotateX(Math.PI / 2); // NOTE: Comment out when using PerspectiveCamera
   scene.add( gField );
 
-  models.cell = new THREE.BoxGeometry(0.33, 0.33, 0.33); // 1x1 cell
+  models.cell = new THREE.BoxGeometry(0.25, 0.25, 0.25); // 1x1 cell
   
   // init the Game of Life cells on gField
   for (let y = 0; y < GameState.HEIGHT; y++) {
@@ -282,8 +270,8 @@ function initObjects() {
       const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
 
       const cell = new THREE.Mesh( models.cell, cellMaterial ); 
-      cell.scale.set(0.9, 0.9, 0.9);
-      cell.position.set((x - 14.33) * 0.33, (y - 14.33) * 0.33, 0.01);
+      cell.scale.set(0.95, 0.95, 0.95);
+      cell.position.set((x - 19.50) * 0.25, (y - 19.50) * 0.25, - 0.01);
 
       gCells[x + y * GameState.HEIGHT] = cell;
 
@@ -293,12 +281,12 @@ function initObjects() {
 
   // add grid
   const size = 10;
-  const divisions = 50;
+  const divisions = globals.boardSize;
   const colorCenterLine = 'black';
   const colorGrid = 'black';
 
   const gridHelper = new THREE.GridHelper( size, divisions, colorCenterLine, colorGrid );
-  gridHelper.rotateX(Math.PI / 2);
+  gridHelper.rotateX(Math.PI / 2); // NOTE: Uncomment when using PerspectiveCamera
   scene.add( gridHelper );
 
   scene.add( new THREE.AxesHelper()); // to be able to see the xyz axis
