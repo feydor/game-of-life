@@ -11,7 +11,6 @@ import GameObjectManager from "../GameObjectManager/GameObjectManager";
 import * as Components from "../Components/Components.js";
 import { GameState, globals } from "../GameState/GameState.ts"; 
 
-let then;
 const inputManager = new InputManager();
 const gGameObjectManager = new GameObjectManager();
 
@@ -55,9 +54,13 @@ const Canvas = (props) => {
   const init = async () => {
     renderer = new THREE.WebGLRenderer( { antialias: true } );
     renderer.setSize( props.width, props.height );
+    
+    // save props.height and props.width in globals
+    globals.width = props.width;
+    globals.height = props.height;
+    globals.aspect = props.width / props.height;
 
     // init the camera
-
     /*
     const fov = 45; // 70
     const aspect = props.width / props.height;
@@ -68,7 +71,7 @@ const Canvas = (props) => {
     globals.camera.position.y = 0;
     */
     console.log(props.width + ' ' + props.height);
-    let aspect = 4.5 * (props.width / props.height); // TODO: Change based on screen size
+    let aspect = globals.boardSize * globals.aspect; // TODO: Change based on screen size
     globals.camera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
     globals.camera.position.set(0, 0, 1);
     globals.camera.zoom = 0.5;
@@ -78,7 +81,7 @@ const Canvas = (props) => {
     const controls = new OrbitControls(globals.camera, renderer.domElement);
     controls.enablePan = false;
     controls.minDistance = 1.0;
-    controls.maxDistance = 10;
+    controls.maxDistance = 2;
     controls.update();
 
     // init the skybox
@@ -95,13 +98,9 @@ const Canvas = (props) => {
 
     initObjects();
 
-    // save props.height and props.width in globals
-    globals.width = props.width;
-    globals.height = props.height;
-
     // change position of ui buttons on render
-    let x = 50;
-    let y = props.height - 50;
+    let x = props.width / 20; // 10vw in UI.module.css
+    let y = props.height - (props.height / 15);
     document.getElementById("play").style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
     document.getElementById("pause").style.transform = `translate(-50%, -50%) translate(${3 * x}px,${y}px)`;
 
@@ -262,14 +261,14 @@ async function initModelsAndAnimations() {
 }
 
 function initObjects() {
-  let fieldGeom = new THREE.PlaneGeometry( globals.width / globals.width, globals.width / globals.height ); // 10x10 board
+  let fieldGeom = new THREE.PlaneGeometry( globals.boardSize, globals.boardSize ); // 10x10 board
   gField = new THREE.Mesh( fieldGeom, materials.field );   
   gField.position.set(0, 0, -0.05); // align on (0, 0)
-  gField.scale.set(10, 10, 10);
+  gField.scale.set(1, 1, 1);
   // gField.rotateX(Math.PI / 2); // NOTE: Comment out when using PerspectiveCamera
   scene.add( gField );
 
-  models.cell = new THREE.BoxGeometry(0.25, 0.25, 0.25); // 1x1 cell
+  models.cell = new THREE.BoxGeometry(1, 1, 1); // 1x1 cell
   
   // init the Game of Life cells on gField
   for (let y = 0; y < GameState.HEIGHT; y++) {
@@ -278,8 +277,10 @@ function initObjects() {
       const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
 
       const cell = new THREE.Mesh( models.cell, cellMaterial ); 
-      cell.scale.set(0.95, 0.95, 0.95);
-      cell.position.set((x - 19.50) * 0.25, (y - 19.50) * 0.25, - 0.01);
+      cell.scale.set(0.98, 0.98, 0.98);
+      // cell.position.set((x - 19.50) * 0.25, (y - 19.50) * 0.25, - 0.01);
+      let overflow = 0.5; // cell size / 2
+      cell.position.set((x - globals.boardSize / 2) + overflow, (y - globals.boardSize / 2) + overflow, - 0.01);
 
       gCells[x + y * GameState.HEIGHT] = cell;
 
@@ -288,14 +289,14 @@ function initObjects() {
   }
 
   // add grid
-  const size = 10;
+  const size = globals.boardSize;
   const divisions = globals.boardSize;
   const colorCenterLine = 'black';
   const colorGrid = 'black';
 
-  const gridHelper = new THREE.GridHelper( size, divisions, colorCenterLine, colorGrid );
-  gridHelper.rotateX(Math.PI / 2); // NOTE: Uncomment when using PerspectiveCamera
-  scene.add( gridHelper );
+  const gGrid = new THREE.GridHelper( size, divisions, colorCenterLine, colorGrid );
+  gGrid.rotateX(Math.PI / 2); // NOTE: Uncomment when using PerspectiveCamera
+  scene.add( gGrid );
 
   scene.add( new THREE.AxesHelper()); // to be able to see the xyz axis
 }

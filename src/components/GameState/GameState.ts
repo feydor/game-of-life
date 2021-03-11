@@ -25,13 +25,11 @@ export enum GameSpeed {
 
 // globals
 export const globals = {
-  time: 0,
-  deltaTime: 0,
-  deltaRotation: 0.01,
   moveSpeed: 4,
   camera: Camera,
   clock: new Clock(),
   gameSpeed: GameSpeed.VerySlow,
+  aspect: 1.5, // set in Canvas along with width and height
   width: 720,
   height: 720,
   boardSize: 40,

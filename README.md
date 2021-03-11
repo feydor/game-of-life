@@ -33,8 +33,8 @@ A React.js web app to interact with a WebGL(three.js) implementation of Conway's
 [(Back to top)](#table-of-contents)
 
 ### In progress screenshot
-As of 03/04/21:
-![](./examples/inprogress.png)
+As of 03/10/21:
+![](./examples/inprogress31021.png)
 
 # Installation
 [(Back to top)](#table-of-contents)
@@ -53,7 +53,7 @@ After installing the dependencies, start the development server by executing:
 npm start
 ```
 
-By default a development server will start at ``http://localhost:3001``. 
+By default a development server will start at ``http://localhost:3000``. 
 
 # Development
 [(Back to top)](#table-of-contents)
