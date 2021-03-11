@@ -68,7 +68,7 @@ const Canvas = (props) => {
     globals.camera.position.y = 0;
     */
     console.log(props.width + ' ' + props.height);
-    let aspect = 7 * (props.width / props.height);
+    let aspect = 4.5 * (props.width / props.height); // TODO: Change based on screen size
     globals.camera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
     globals.camera.position.set(0, 0, 1);
     globals.camera.zoom = 0.5;
@@ -99,17 +99,25 @@ const Canvas = (props) => {
     globals.width = props.width;
     globals.height = props.height;
 
-    /*
-    const sheepObject = gGameObjectManager.createGameObject(scene, "sheep");
-    const sheepComponent = new Components.Animal(sheepObject, models.sheep);
-    sheepObject.addComponent(sheepComponent);
-    sheepObject.transform.position.x = 1;
-    */
-    
-    // renderer.setAnimationLoop( render );
-    setInterval( function () {
-      requestAnimationFrame( render );
-    }, 1000 / 60 ); // limit to 60fps
+    // change position of ui buttons on render
+    let x = 50;
+    let y = props.height - 50;
+    document.getElementById("play").style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
+    document.getElementById("pause").style.transform = `translate(-50%, -50%) translate(${3 * x}px,${y}px)`;
+
+    // run once and then set eventListener for change to globals.running
+    requestAnimationFrame(render);
+    let h_interval;
+    globals.runState.registerListener(function(val) {
+      console.log("The runState changed to: ", val);
+      if (val) {
+        h_interval = setInterval( function () {
+          requestAnimationFrame( render );
+        }, 1000 / 60 ); // limit to 60fps
+      } else {
+        clearInterval(h_interval); 
+      }
+    });
   };
 
   useEffect(() => {

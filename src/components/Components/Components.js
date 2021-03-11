@@ -1,6 +1,6 @@
 /* GameObject.js - game objects to be stored in a GameObjectManager */
 import { AnimationMixer, Matrix4, Frustum, Object3D } from 'three';
-import { GameState, globals } from '../GameState/GameState';
+import { globals } from '../GameState/GameState';
 
 // Base for all game objects
 export class Component {
