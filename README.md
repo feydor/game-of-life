@@ -66,9 +66,6 @@ Technologies used in this mono repo include:
 
 - React.Js: front-end framework
 - Three.js: WebGL library
-- ExpressJS: RESTful api
-- MongoDB: NoSQL database
-- React-Bootstrap: CSS and HTML framework
 - create-react-app: Web application bundler and setup
 - Prettier: JS code style formatter
 - Jest: Testing framework

@@ -74,7 +74,6 @@ const Canvas = (props) => {
     let aspect = globals.boardSize * globals.aspect; // TODO: Change based on screen size
     globals.camera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
     globals.camera.position.set(0, 0, 1);
-    globals.camera.zoom = 0.5;
     scene.add( globals.camera );
 
     // init mouse interaction
@@ -104,7 +103,12 @@ const Canvas = (props) => {
     document.getElementById("play").style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
     document.getElementById("pause").style.transform = `translate(-50%, -50%) translate(${3 * x}px,${y}px)`;
 
-    // run once and then set eventListener for change to globals.running
+    // run render() at 60fps
+    setInterval( function () {
+      requestAnimationFrame( render );
+    }, 1000 / 60 );
+
+    /*
     requestAnimationFrame(render);
     let h_interval;
     globals.runState.registerListener(function(val) {
@@ -117,6 +121,7 @@ const Canvas = (props) => {
         clearInterval(h_interval); 
       }
     });
+    */
   };
 
   useEffect(() => {
@@ -138,8 +143,8 @@ function render() {
     globals.camera.updateProjectionMatrix();
   }
 
-  // update GoL state
-  if (Math.trunc(globals.clock.getDelta()) % globals.gameSpeed === 0) {
+  // update GoL state if globals.isRunning
+  if (globals.runState.isRunning && Math.trunc(globals.clock.getDelta()) % globals.gameSpeed === 0) {
       GameState.update();
       updateCells();
   }

@@ -2,7 +2,12 @@
   position: absolute; /* position relative to container */
   left: 0; /* top-left of container */
   top: 0;
-  color: white;
+  width: 100%;
+  height: 5vh;
+  background-color: black;
+  border: 2px white solid;
+  border-radius: 5px;
+  opacity: 0.9;
 }
 
 .button {
@@ -14,7 +19,8 @@
 }
 
 .button > img {
-  max-width: 10vw;
+  max-width: 6vw;
+  opacity: 0.9;
 }
 
 .play {

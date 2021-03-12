@@ -9,6 +9,12 @@ const UI = (props) => {
       <div id="pause" onClick={props.handlePauseEvent} className={styles.button}>
         <img src="pause.jpg" alt="pause button" />
       </div>
+      <div id="load">
+        <select>
+          <option value="random">Random</option>
+          <option value="gun">Gosper glider gun</option>
+        </select>
+      </div>
     </div>
   );
 }
