@@ -10,9 +10,10 @@ const UI = (props) => {
         <img src="pause.jpg" alt="pause button" />
       </div>
       <div id="load">
-        <select>
+        <select defaultValue="random" onChange={props.handleLoadEvent}>
           <option value="random">Random</option>
           <option value="gun">Gosper glider gun</option>
+          <option value="acorn">Acorn</option>
         </select>
       </div>
     </div>

@@ -23,8 +23,10 @@
   opacity: 0.9;
 }
 
-.play {
-}
-
-.pause {
+.load {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  cursor: pointer;
+  user-select: none;
 }

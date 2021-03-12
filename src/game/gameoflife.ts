@@ -113,7 +113,6 @@ export class CellMap implements CellMapInterface {
 
 export class Game {
   currCells: CellMap;
-  nextCells: CellMap;
   HEIGHT = 17;
   WIDTH = 17;
   isRunning: boolean;
@@ -123,18 +122,7 @@ export class Game {
     this.HEIGHT = height;
     this.WIDTH = width;
     this.currCells = new CellMap(this.HEIGHT, this.WIDTH);
-    this.nextCells = new CellMap(this.HEIGHT, this.WIDTH);
     this.isRunning = false;
-
-    // TODO: Have difficulty modes/ random starting seeds;
-    // set up a glider, from top to bottom
-    /*
-    this.currCells.setCell(5, 5);
-    this.currCells.setCell(6, 6);
-    this.currCells.setCell(4, 7);
-    this.currCells.setCell(5, 7);
-    this.currCells.setCell(6, 7);
-    */
   }
 
   update() {
@@ -152,6 +140,7 @@ export class Game {
   }
 
   setUpGosperGun() {
+    this.clearField();
     this.currCells.setCell(5, 15);
     this.currCells.setCell(6, 15);
     this.currCells.setCell(6, 16);
@@ -203,12 +192,31 @@ export class Game {
   }
 
   setUpRandom() {
+    this.clearField();
     for (let y = 0; y < this.currCells.height; y++) {
       for (let x = 0; x < this.currCells.width; x++) {
         let rand = Math.floor(Math.random() * this.HEIGHT ) + 1; // rand(1, this.Height)
         if (rand % 2 === 0) this.currCells.setCell(x, y);
       }
     }
+  }
+
+  setUpAcorn() {
+    this.clearField();
+    let x = this.WIDTH / 2;
+    let y = this.HEIGHT / 2;
+
+    this.currCells.setCell(x, y);
+    this.currCells.setCell(x+1, y);
+    this.currCells.setCell(x+1, y+2);
+    this.currCells.setCell(x+3, y+1);
+    this.currCells.setCell(x+4, y);
+    this.currCells.setCell(x+5, y);
+    this.currCells.setCell(x+6, y);
+  }
+
+  clearField() {
+    this.currCells = new CellMap(this.HEIGHT, this.WIDTH);
   }
 
   /**

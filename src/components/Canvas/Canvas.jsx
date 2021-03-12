@@ -103,6 +103,11 @@ const Canvas = (props) => {
     document.getElementById("play").style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
     document.getElementById("pause").style.transform = `translate(-50%, -50%) translate(${3 * x}px,${y}px)`;
 
+    // setup listener to animation events
+    document.addEventListener("requestGameAnimationFrame", () => {
+      updateCells();
+    });
+
     // run render() at 60fps
     setInterval( function () {
       requestAnimationFrame( render );

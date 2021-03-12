@@ -3,16 +3,37 @@ import * as GOL from "../../game/gameoflife";
 import { Clock, Camera } from 'three';
 
 export const GameState = new GOL.Game(40, 40);
-GameState.setUpRandom(); // TODO: User input
+GameState.setUpRandom(); // default
 
 export function handlePlayEvent() {
-  console.log("clicked play button.");
   globals.runState.isRunning = true; 
 }
 
 export function handlePauseEvent() {
-  console.log("clicked pause button.");
   globals.runState.isRunning = false; 
+}
+
+/**
+ * changes the gamestate and sends out an event on Document for one animation frame
+ */
+export function handleLoadEvent(e: Event) {
+  globals.runState.isRunning = false;
+  switch (e.target.value) {
+    case "random":
+      GameState.setUpRandom();
+      document.dispatchEvent(new Event("requestGameAnimationFrame"));
+      break;
+    case "gun":
+      GameState.setUpGosperGun();
+      document.dispatchEvent(new Event("requestGameAnimationFrame"));
+      break;
+    case "acorn":
+      GameState.setUpAcorn();
+      document.dispatchEvent(new Event("requestGameAnimationFrame"));
+    default:
+      console.error(`${e.target.value} is not an available option.`);
+      break;
+  }
 }
 
 export enum GameSpeed {
