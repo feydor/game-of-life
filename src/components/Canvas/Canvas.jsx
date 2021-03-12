@@ -7,12 +7,9 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 
 import InputManager from "../InputManager/InputManager";
-import GameObjectManager from "../GameObjectManager/GameObjectManager";
-import * as Components from "../Components/Components.js";
 import { GameState, globals } from "../GameState/GameState.ts"; 
 
 const inputManager = new InputManager();
-const gGameObjectManager = new GameObjectManager();
 
 // three.js globals
 let renderer;
@@ -73,7 +70,7 @@ const Canvas = (props) => {
 
     initMaterials();
 
-    await initModelsAndAnimations();
+    // await initModelsAndAnimations();
 
     initObjects();
 
@@ -89,21 +86,6 @@ const Canvas = (props) => {
     setInterval( function () {
       requestAnimationFrame( render );
     }, 1000 / 60 );
-
-    /*
-    requestAnimationFrame(render);
-    let h_interval;
-    globals.runState.registerListener(function(val) {
-      console.log("The runState changed to: ", val);
-      if (val) {
-        h_interval = setInterval( function () {
-          requestAnimationFrame( render );
-        }, 1000 / 60 ); // limit to 60fps
-      } else {
-        clearInterval(h_interval); 
-      }
-    });
-    */
   };
 
   useEffect(() => {
@@ -128,18 +110,13 @@ function render() {
   // update GoL state if globals.isRunning
   if (globals.runState.isRunning && Math.trunc(globals.clock.getDelta()) % globals.gameSpeed === 0) {
       GameState.update();
-      updateCells();
+      updateCells(false);
   }
 
   // update sphere inputs
   /*
   if (inputManager.isDown("ArrowRight")) gSphere.rotation.y += globals.deltaRotation;
-  if (inputManager.isDown("ArrowLeft")) gSphere.rotation.y -= globals.deltaRotation;
-  if (inputManager.isDown("ArrowUp")) gSphere.rotation.x += globals.deltaRotation;
-  if (inputManager.isDown("ArrowDown")) gSphere.rotation.x -= globals.deltaRotation;
   */
-
-  gGameObjectManager.update()
 
   // inputManager.update();
   if (globals.is3D) {
@@ -222,8 +199,6 @@ function initCameras() {
 }
 
 function initMaterials() {
-  let textureLoader = new THREE.TextureLoader();
-
   // board material
   materials.field = new THREE.MeshBasicMaterial({
     color: 'white',
@@ -238,7 +213,14 @@ function initMaterials() {
     opacity: 0.0,
     flatShading: true,
   });
-  //
+
+  // cell has died material
+  materials.hasDied = new THREE.MeshPhongMaterial({
+    name: 'hasdied',
+    color: 'green',
+    flatShading: true,
+  });
+
   // cell is alive material
   materials.isAlive = new THREE.MeshPhongMaterial({
     name: 'isalive',
@@ -327,24 +309,72 @@ function initObjects() {
 function initEventListeners() {
   // animation frame requests
   document.addEventListener("requestGameAnimationFrame", () => {
-    updateCells();
+    updateCells(true);
   });
 }
 
-function updateCells() {
+/**
+ * @param {boolean} reset, ignore previous state
+ */
+function updateCells(reset) {
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
       let cell = gCells[x + y * GameState.HEIGHT];
       let newState = GameState.currCells.getCellState(x, y);
-     
-      // if change to cell state, update material
-      if (newState && cell.material.name === materials.isDead.name) {
-        cell.material = materials.isAlive; 
-      } else if (!newState && cell.material.name === materials.isAlive.name) {
-        cell.material = materials.isDead; 
+      let prevState = getPrevState(cell.material.name);
+      if (reset) {
+        if (newState && cell.material.name === materials.isDead.name) {
+          cell.material = materials.isAlive; 
+        } else if (!newState && cell.material.name === materials.isAlive.name) {
+          cell.material = materials.isDead; 
+        }
+        continue;
       }
-      // cell.material = (newState) ? materials.isAlive : materials.isDead;
+
+      if (globals.trail) {
+        if (newState && prevState) {
+          // do nothing, already alive
+        } else if (newState && !prevState) {
+          cell.material = materials.isAlive;
+        } else if (!newState && prevState) {
+          cell.material = materials.hasDied;
+        } else if (!newState && !prevState) {
+          // do nothing, already dead
+        }
+      } else {
+        if (newState && prevState) {
+          // do nothing, already alive
+        } else if (newState && !prevState) {
+          cell.material = materials.isAlive;
+        } else if (!newState && prevState) {
+          cell.material = materials.isDead;
+        } else if (!newState && !prevState) {
+          cell.material = materials.isDead;
+        }
+
+        /*
+        if (newState && cell.material.name === materials.isDead.name) {
+          cell.material = materials.isAlive; 
+        } else if (!newState && cell.material.name === materials.isAlive.name) {
+          cell.material = materials.isDead; 
+        }
+        */
+      }
     }
+  }
+}
+
+/* a switch statement on cell material, called before a material update 
+  * (this is what makes it an indicator of the previous cell state)
+  * */
+function getPrevState(materialName) {
+  switch (materialName) {
+    case "isAlive":
+      return true;
+    case "isDead":
+      return false;
+    case "hasDied":
+      return false;
   }
 }
 

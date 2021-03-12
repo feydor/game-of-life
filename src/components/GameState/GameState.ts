@@ -26,6 +26,8 @@ export const globals = {
   width: 720,
   height: 720,
   boardSize: 40,
+  trail: false, // formely alive cells leave a 'trail'
+  colors: false, // random colors for alive and/or formely alive cells
   runState: {
     m_isRunning: false,
     listener: function (val: any) {},
@@ -76,4 +78,23 @@ export function handleLoadEvent(e: Event) {
 
 export function handleViewChange() {
   globals.is3D = !globals.is3D;
+}
+
+/**
+ * layout options are inclusive
+ */
+export function handleLayoutChange(e: Event) {
+  let isChecked = document.getElementById(e.target.id).checked;
+  let id = e.target.id;
+  switch (id) {
+    case "trail":
+      globals.trail = (isChecked) ? true : false;
+      break;
+    case "colors":
+      globals.colors = (isChecked) ? true : false;
+    break;
+    default:
+      console.error(`${id} is not an option in layout.`);
+      break;
+  }
 }

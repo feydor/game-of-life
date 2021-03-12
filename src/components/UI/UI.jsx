@@ -26,9 +26,9 @@ const UI = (props) => {
 
       <div id="layout" className={styles.layout}>
         <label for="trail">Trail</label>
-        <input type="checkbox" name="trail" value="trail" />
+        <input type="checkbox" name="trail" value="trail" id="trail" onChange={props.handleLayoutChange} />
         <label for="colors">Colors</label>
-        <input type="checkbox" name="colors" value="colors" />
+        <input type="checkbox" name="colors" value="colors" id="colors" onChange={props.handleLayoutChange} />
       </div>
 
     </div>
