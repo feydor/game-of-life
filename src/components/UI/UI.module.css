@@ -23,10 +23,27 @@
   opacity: 0.9;
 }
 
-.load {
+.perspective {
   position: absolute;
-  left: 50%;
-  top: 0;
+  left: 2%;
+  top: 0.5vh;
   cursor: pointer;
   user-select: none;
+}
+
+.load {
+  position: absolute;
+  left: 30%;
+  top: 0.5vh;
+  cursor: pointer;
+  user-select: none;
+}
+
+.layout {
+  position: absolute;
+  left: 65%;
+  top: 0.5vh;
+  cursor: pointer;
+  user-select: none;
+  color: white; 
 }

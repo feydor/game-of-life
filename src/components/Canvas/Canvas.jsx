@@ -59,29 +59,9 @@ const Canvas = (props) => {
     globals.width = props.width;
     globals.height = props.height;
     globals.aspect = props.width / props.height;
-
-    // init the camera
-    /*
-    const fov = 45; // 70
-    const aspect = props.width / props.height;
-    const near = 0.1;
-    const far = 30000;
-    globals.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    globals.camera.position.z = 10;
-    globals.camera.position.y = 0;
-    */
     console.log(props.width + ' ' + props.height);
-    let aspect = globals.boardSize * globals.aspect; // TODO: Change based on screen size
-    globals.camera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
-    globals.camera.position.set(0, 0, 1);
-    scene.add( globals.camera );
 
-    // init mouse interaction
-    const controls = new OrbitControls(globals.camera, renderer.domElement);
-    controls.enablePan = false;
-    controls.minDistance = 1.0;
-    controls.maxDistance = 2;
-    controls.update();
+    initCameras();
 
     // init the skybox
     const skyboxMaterials = createMaterialArray('skybox/island.jpg', 6);
@@ -103,10 +83,7 @@ const Canvas = (props) => {
     document.getElementById("play").style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
     document.getElementById("pause").style.transform = `translate(-50%, -50%) translate(${3 * x}px,${y}px)`;
 
-    // setup listener to animation events
-    document.addEventListener("requestGameAnimationFrame", () => {
-      updateCells();
-    });
+    initEventListeners();
 
     // run render() at 60fps
     setInterval( function () {
@@ -144,8 +121,8 @@ function render() {
   
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
-    globals.camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    globals.camera.updateProjectionMatrix();
+    // globals.camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    // globals.camera.updateProjectionMatrix();
   }
 
   // update GoL state if globals.isRunning
@@ -165,7 +142,12 @@ function render() {
   gGameObjectManager.update()
 
   // inputManager.update();
-  renderer.render(scene, globals.camera);
+  if (globals.is3D) {
+    renderer.render(scene, globals.perspectiveCamera);
+
+  } else {
+    renderer.render(scene, globals.orthographicCamera);
+  }
 }
 
 function resizeRendererToDisplaySize(renderer) {
@@ -206,6 +188,37 @@ function createMaterialArray(filename, n) {
     materialArr.push( new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide }) );
    }
   return materialArr;
+}
+
+function initCameras() {
+  // init the cameras
+  // save perspectiveCam to globals
+  const fov = 85;
+  let aspect = globals.aspect; // TODO: Change based on screen size
+  const near = 0.1;
+  const far = 10000;
+  globals.perspectiveCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+  globals.perspectiveCamera.position.set(0, 0, 41);
+  scene.add(globals.perspectiveCamera);
+
+  aspect = globals.boardSize * globals.aspect;
+  globals.orthographicCamera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
+  globals.orthographicCamera.position.set(0, 0, 2);
+
+  scene.add( globals.orthographicCamera );
+
+  // init mouse interaction
+  const orthoControls = new OrbitControls(globals.orthographicCamera, renderer.domElement);
+  orthoControls.enablePan = false;
+  orthoControls.minDistance = 1.0;
+  orthoControls.maxDistance = 45;
+  orthoControls.update();
+  
+  const perspControls = new OrbitControls(globals.perspectiveCamera, renderer.domElement);
+  perspControls.enablePan = false;
+  perspControls.minDistance = 1.0;
+  perspControls.maxDistance = 45;
+  perspControls.update();
 }
 
 function initMaterials() {
@@ -309,6 +322,13 @@ function initObjects() {
   scene.add( gGrid );
 
   scene.add( new THREE.AxesHelper()); // to be able to see the xyz axis
+}
+
+function initEventListeners() {
+  // animation frame requests
+  document.addEventListener("requestGameAnimationFrame", () => {
+    updateCells();
+  });
 }
 
 function updateCells() {

@@ -115,28 +115,16 @@ export class Game {
   currCells: CellMap;
   HEIGHT = 17;
   WIDTH = 17;
-  isRunning: boolean;
 
   /* variable size constructor */
   constructor(height: number = 17, width: number = 17) {
     this.HEIGHT = height;
     this.WIDTH = width;
     this.currCells = new CellMap(this.HEIGHT, this.WIDTH);
-    this.isRunning = false;
   }
 
   update() {
     this.currCells = this.currCells.nextGeneration();
-  }
-
-  run() {
-    this.setupInputListener();
-    this.isRunning = true;
-
-    let title = "CONWAY'S GAME OF LIFE:";
-    console.log(title);
-    let instructions = "Press ENTER to iterate and q to exit.";
-    console.log(instructions);
   }
 
   setUpGosperGun() {
@@ -217,44 +205,5 @@ export class Game {
 
   clearField() {
     this.currCells = new CellMap(this.HEIGHT, this.WIDTH);
-  }
-
-  /**
-   * returns a string containing an ascii-representation of the current cells
-   */
-  draw(): string {
-    let out = "";
-    for (let y = 0; y < this.currCells.height; y++) {
-      for (let x = 0; x < this.currCells.width; x++) {
-        if (x === 0 || x === this.currCells.width - 1) out += "|";
-        if (y === 0 || y === this.currCells.height - 1) out += "_";
-        out += this.currCells.getCellState(x, y) ? "1" : "0";
-      }
-    }
-    return out;
-  }
-
-  handleInput(e: KeyboardEvent): string {
-     switch (e.code) {
-       case "Enter":
-         this.currCells = this.currCells.nextGeneration();
-         let out = this.draw();
-         return out;
-      case "Backspace":
-      case "KeyQ":
-      case "KeyE":
-        this.isRunning = false;
-        return "Exiting";
-     
-      default:
-        return "Controls: 'Enter' for next iteration, 'Backspace/q/e' to quit"
-     }
-  }
-
-  setupInputListener(): void {
-    document.addEventListener('keydown', (e) => {
-     let status = this.handleInput(e);
-     console.log(status);
-    });  
   }
 }
