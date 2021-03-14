@@ -129,54 +129,64 @@ export class Game {
 
   setUpGosperGun() {
     this.clearField();
-    this.currCells.setCell(5, 15);
-    this.currCells.setCell(6, 15);
-    this.currCells.setCell(6, 16);
-    this.currCells.setCell(5, 16);
+    let x = 1;
+    let y = this.WIDTH / 2;
+
+    // left square
+    this.currCells.setCell(x, y);
+    this.currCells.setCell(x+1, y);
+    this.currCells.setCell(x, y-1);
+    this.currCells.setCell(x+1, y-1);
+
+    x += 10;
 
     // queen bee
-    this.currCells.setCell(14, 15);
-    this.currCells.setCell(15, 16);
-    this.currCells.setCell(16, 17);
-    this.currCells.setCell(17, 17);
+    this.currCells.setCell(x, y);
+    this.currCells.setCell(x+1, y+1);
+    this.currCells.setCell(x+2, y+2);
+    this.currCells.setCell(x+3, y+2);
 
-    this.currCells.setCell(19, 16);
-    this.currCells.setCell(20, 15);
-    this.currCells.setCell(20, 14);
-    this.currCells.setCell(20, 13);
-    this.currCells.setCell(21, 14); // tip
-    this.currCells.setCell(19, 12);
+    this.currCells.setCell(x+5, y+1);
+    this.currCells.setCell(x+6, y);
+    this.currCells.setCell(x+6, y-1);
+    this.currCells.setCell(x+7, y-1); // tip
+    this.currCells.setCell(x+6, y-2);
+    this.currCells.setCell(x+5, y-3);
     
-    this.currCells.setCell(18, 14);
+    this.currCells.setCell(x+4, y-1);
 
-    this.currCells.setCell(17, 11);
-    this.currCells.setCell(16, 11);
-    this.currCells.setCell(15, 12);
-    this.currCells.setCell(14, 13);
-    this.currCells.setCell(14, 14);
+    this.currCells.setCell(x+3, y-4);
+    this.currCells.setCell(x+2, y-4);
+    this.currCells.setCell(x+1, y-3);
+    this.currCells.setCell(x, y-2);
+    this.currCells.setCell(x, y-1);
+
+    x += 10; 
 
     // 2nd bee
-    this.currCells.setCell(24, 15);
-    this.currCells.setCell(24, 16);
-    this.currCells.setCell(24, 17);
-    this.currCells.setCell(25, 17);
-    this.currCells.setCell(25, 16);
-    this.currCells.setCell(25, 15);
+    this.currCells.setCell(x, y);
+    this.currCells.setCell(x, y+1);
+    this.currCells.setCell(x, y+2);
+    this.currCells.setCell(x+1, y+2);
+    this.currCells.setCell(x+1, y+1);
+    this.currCells.setCell(x+1, y);
 
     // bottom wing
-    this.currCells.setCell(26, 14);
-    this.currCells.setCell(28, 14);
-    this.currCells.setCell(28, 13);
+    this.currCells.setCell(x+2, y-1);
+    this.currCells.setCell(x+4, y-1);
+    this.currCells.setCell(x+4, y-2);
     // topwing
-    this.currCells.setCell(25, 18);
-    this.currCells.setCell(28, 18);
-    this.currCells.setCell(28, 19);
+    this.currCells.setCell(x+2, y+3);
+    this.currCells.setCell(x+4, y+3);
+    this.currCells.setCell(x+4, y+4);
+
+    x += 14;
 
     // last block
-    this.currCells.setCell(37, 17);
-    this.currCells.setCell(38, 17);
-    this.currCells.setCell(38, 16);
-    this.currCells.setCell(37, 16);
+    this.currCells.setCell(x, y+1);
+    this.currCells.setCell(x, y+2);
+    this.currCells.setCell(x+1, y+2);
+    this.currCells.setCell(x+1, y+1);
   }
 
   setUpRandom() {

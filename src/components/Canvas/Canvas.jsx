@@ -217,7 +217,7 @@ function initMaterials() {
   // cell has died material
   materials.hasDied = new THREE.MeshPhongMaterial({
     name: 'hasdied',
-    color: 'green',
+    color: '#90EE90',
     flatShading: true,
   });
 
@@ -323,17 +323,14 @@ function updateCells(reset) {
       let newState = GameState.currCells.getCellState(x, y);
       let prevState = getPrevState(cell.material.name);
       if (reset) {
-        if (newState && cell.material.name === materials.isDead.name) {
-          cell.material = materials.isAlive; 
-        } else if (!newState && cell.material.name === materials.isAlive.name) {
-          cell.material = materials.isDead; 
-        }
+        cell.material = (newState) ? materials.isAlive : materials.isDead;
         continue;
       }
 
       if (globals.trail) {
         if (newState && prevState) {
           // do nothing, already alive
+          cell.material = materials.isAlive;
         } else if (newState && !prevState) {
           cell.material = materials.isAlive;
         } else if (!newState && prevState) {
@@ -352,6 +349,7 @@ function updateCells(reset) {
           cell.material = materials.isDead;
         }
 
+
         /*
         if (newState && cell.material.name === materials.isDead.name) {
           cell.material = materials.isAlive; 
@@ -369,11 +367,11 @@ function updateCells(reset) {
   * */
 function getPrevState(materialName) {
   switch (materialName) {
-    case "isAlive":
+    case "isalive":
       return true;
-    case "isDead":
+    case "isdead":
       return false;
-    case "hasDied":
+    case "hasdied":
       return false;
   }
 }
