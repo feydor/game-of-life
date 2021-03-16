@@ -2,9 +2,6 @@
 import * as GOL from "../../game/gameoflife";
 import { Clock, Camera } from 'three';
 
-export const GameState = new GOL.Game(40, 40);
-GameState.setUpRandom(); // default
-
 export enum GameSpeed {
   VerySlow = 6,
   Slow = 5,
@@ -25,7 +22,7 @@ export const globals = {
   aspect: 1.5, // set in Canvas along with width and height
   width: 720,
   height: 720,
-  boardSize: 40,
+  boardSize: 80,
   trail: false, // formely alive cells leave a 'trail'
   colors: false, // random colors for alive and/or formely alive cells
   runState: {
@@ -44,6 +41,12 @@ export const globals = {
   }
 };
 
+export const GameState = new GOL.Game(globals.boardSize, globals.boardSize);
+GameState.setUpRandom(); // default
+
+////////////////////////////////////////////////////////////////////////////
+// UI / Event handlers
+//////////////////////////////////////
 export function handlePlayEvent() {
   globals.runState.isRunning = true; 
 }

@@ -3,7 +3,7 @@ import style from "./Canvas.module.css";
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-// import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { BufferGeometryUtils } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 
 import InputManager from "../InputManager/InputManager";
@@ -41,6 +41,9 @@ const models = {
 
 let gField;
 let gCells = new Array(GameState.WIDTH * GameState.HEIGHT);
+let gColor = new THREE.Color();
+let gMergedGeometry;
+let gMergedMesh;
 
 /**
  * for webgl rendering
@@ -103,8 +106,13 @@ function render() {
   
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement;
-    // globals.camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    // globals.camera.updateProjectionMatrix();
+    if (!globals.is3D) {
+      globals.orthographicCamera.aspect = canvas.clientWidth / canvas.clientHeight;
+      globals.orthographicCamera.updateProjectionMatrix();
+    } else {
+      globals.perspectiveCamera.aspect = canvas.clientWidth / canvas.clientHeight;
+      globals.perspectiveCamera.updateProjectionMatrix();
+    }
   }
 
   // update GoL state if globals.isRunning
@@ -113,17 +121,10 @@ function render() {
       updateCells(false);
   }
 
-  // update sphere inputs
-  /*
-  if (inputManager.isDown("ArrowRight")) gSphere.rotation.y += globals.deltaRotation;
-  */
-
-  // inputManager.update();
-  if (globals.is3D) {
-    renderer.render(scene, globals.perspectiveCamera);
-
-  } else {
+  if (!globals.is3D) {
     renderer.render(scene, globals.orthographicCamera);
+  } else {
+    renderer.render(scene, globals.perspectiveCamera);
   }
 }
 
@@ -274,24 +275,52 @@ function initObjects() {
   scene.add( gField );
 
   models.cell = new THREE.BoxGeometry(1, 1, 1); // 1x1 cell
-  
+  // models.cell = new THREE.BufferGeometry();
+  const colors = [];
+  const positions = [];
+  console.log(models.cell);
+
   // init the Game of Life cells on gField
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
       const isAlive = GameState.currCells.getCellState(x, y);
-      const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
-
-      const cell = new THREE.Mesh( models.cell, cellMaterial ); 
-      cell.scale.set(0.98, 0.98, 0.98);
+      const isAliveNormalized = (isAlive) ? 1 : 0;
+      const cellColor = (isAlive) ? new THREE.Color('pink') : new THREE.Color('black');
+      
+      const cell = new THREE.BoxBufferGeometry(1, 1, 1); // cell is a BufferGeometry
+      
+      // get the cell's color from its cell state
+      // setCellColor(cell, isAlive);
+      cell.scale(0.98, 0.98, 0.98);
+      // const cell = new THREE.Mesh( models.cell, cellMaterial ); 
+      // cell.scale.set(0.98, 0.98, 0.98);
       // cell.position.set((x - 19.50) * 0.25, (y - 19.50) * 0.25, - 0.01);
+
       let overflow = 0.5; // cell size / 2
-      cell.position.set((x - globals.boardSize / 2) + overflow, (y - globals.boardSize / 2) + overflow, - 0.01);
+      cell.translate((x - globals.boardSize / 2) + overflow, (y - globals.boardSize / 2) + overflow, - 0.01);
 
-      gCells[x + y * GameState.HEIGHT] = cell;
+      // add color attribute to geom
+      let colors = new Float32Array(3 * cell.getAttribute('position').count);
+      colors = colors.map(c => (isAlive) ? 255 : 0);
+      cell.setAttribute('color', new THREE.BufferAttribute(colors, 3, true) );
 
-      scene.add( cell );
+      // cell.position.set((x - globals.boardSize / 2) + overflow, (y - globals.boardSize / 2) + overflow, - 0.01);
+
+      gCells[x + y * GameState.HEIGHT] = { geom: cell, color: cellColor, state: isAlive };
+
+      // scene.add( cell );
     }
   }
+/*
+  gCells.forEach(cell => {
+    cell.geom.setAttribute('color', new THREE.Float32BufferAttribute( colors, 3 ));
+  })
+  */
+
+  gMergedGeometry = BufferGeometryUtils.mergeBufferGeometries(gCells.map( cell => cell.geom ), false);
+  const material = new THREE.MeshPhongMaterial({ vertexColors: THREE.VertexColors });
+  gMergedMesh = new THREE.Mesh(gMergedGeometry, material);
+  scene.add(gMergedMesh);
 
   // add grid
   const size = globals.boardSize;
@@ -314,23 +343,36 @@ function initEventListeners() {
 }
 
 /**
+ * draws the cells
  * @param {boolean} reset, ignore previous state
  */
 function updateCells(reset) {
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
       let cell = gCells[x + y * GameState.HEIGHT];
+
       let newState = GameState.currCells.getCellState(x, y);
-      let prevState = getPrevState(cell.material.name);
+      let prevState = cell.state;
+      const cellColor = (newState) ? new THREE.Color('white') : new THREE.Color('black');
+
       if (reset) {
-        cell.material = (newState) ? materials.isAlive : materials.isDead;
+        let colors = cell.geom.attributes.color.array;
+        colors = colors.map(c => (newState) ? 255 : 100);
+        cell.geom.setAttribute('color', new THREE.BufferAttribute(colors, 3, true) );
+        cell.geom.attributes.color.needsUpdate = true;
+      
+        if (x == 0 && y == 0) console.log('cell.geom.attributes.color.array: ', cell.geom.attributes.color.array);
+        if (x == 0 && y == 0) console.log('cell.geom: ', cell.geom);
+        if (x == 0 && y == 0) console.log('gMergedGeometry.attributes.color: ', gMergedGeometry.attributes.color);
+
         continue;
       }
+
 
       if (globals.trail) {
         if (newState && prevState) {
           // do nothing, already alive
-          cell.material = materials.isAlive;
+          // cell.material = materials.isAlive;
         } else if (newState && !prevState) {
           cell.material = materials.isAlive;
         } else if (!newState && prevState) {
@@ -339,6 +381,11 @@ function updateCells(reset) {
           // do nothing, already dead
         }
       } else {
+        let colors = cell.geom.attributes.color.array;
+        colors = colors.map(c => (newState) ? 255 : 100);
+        cell.geom.setAttribute('color', new THREE.BufferAttribute(colors, 3, true) );
+        cell.geom.attributes.color.needsUpdate = true;
+        /*
         if (newState && prevState) {
           // do nothing, already alive
         } else if (newState && !prevState) {
@@ -348,18 +395,12 @@ function updateCells(reset) {
         } else if (!newState && !prevState) {
           cell.material = materials.isDead;
         }
-
-
-        /*
-        if (newState && cell.material.name === materials.isDead.name) {
-          cell.material = materials.isAlive; 
-        } else if (!newState && cell.material.name === materials.isAlive.name) {
-          cell.material = materials.isDead; 
-        }
         */
+
       }
     }
   }
+  gMergedMesh.geometry.attributes.color.needsUpdate = true;
 }
 
 /* a switch statement on cell material, called before a material update 
@@ -374,6 +415,35 @@ function getPrevState(materialName) {
     case "hasdied":
       return false;
   }
+}
+
+/**
+ * returns a buffer attribute for the color attribute
+ * @return {THREE.BufferAttribute}
+ * @example
+ * - bufferGeom.setAttribute('color', getCellColor(isAlive));
+ */
+function setCellColor(cell, cellState) {
+  const cellStateNormalized = (cellState) ? 1 : 0;
+
+  const hue = THREE.MathUtils.lerp(0.01, 0.5, cellStateNormalized);
+  const saturation = 1;
+  const lightness = 0.5;
+  gColor.setHSL(hue, saturation, lightness);
+  const rgb = gColor.toArray().map(v => v * 255); // convert to rgb
+
+  // make an array to store colors for each vertex
+  const numVerts = cell.getAttribute('position').count;
+  const itemSize = 3;  // r, g, b
+  const colors = new Uint8Array(itemSize * numVerts);
+  // copy the color into the colors array for each vertex
+  colors.forEach((v, idx) => {
+    colors[idx] = rgb[idx % 3];
+  });
+
+  const normalized = true;
+  const colorAttrib = new THREE.BufferAttribute(colors, itemSize, normalized);
+  cell.setAttribute('color', colorAttrib);
 }
 
 export default Canvas;

@@ -16,12 +16,16 @@ interface CellMapInterface {
  */
 export class CellMap implements CellMapInterface {
   width: number;
+  widthPlusPadding: number;
   height: number;
+  heightPlusPadding: number;
   cells: Array<boolean>; /* 0 indexed */
   
   constructor(h: number, w: number) {
     this.width = w;
+    this.widthPlusPadding = w + 2; // cell padding on each side
     this.height = h;
+    this.heightPlusPadding = h + 2;
     this.cells = new Array(w * h).fill(false);
   }
 
