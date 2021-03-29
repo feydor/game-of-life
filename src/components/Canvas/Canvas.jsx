@@ -39,11 +39,11 @@ const models = {
   cell: undefined,
 }
 
+const palette = ["#F72585", "#B5179E", "#7209B7", "#560BAD", "#480CA8", "#3A0CA3", "#3F37C9", "#4361EE", 
+"#4895EF", "#4CC9F0"];
+
 let gField;
 let gCells = new Array(GameState.WIDTH * GameState.HEIGHT);
-let gColor = new THREE.Color();
-let gMergedGeometry;
-let gMergedMesh;
 
 /**
  * for webgl rendering
@@ -218,14 +218,14 @@ function initMaterials() {
   // cell has died material
   materials.hasDied = new THREE.MeshPhongMaterial({
     name: 'hasdied',
-    color: '#90EE90',
+    color: '#FFC0CB',
     flatShading: true,
   });
 
   // cell is alive material
   materials.isAlive = new THREE.MeshPhongMaterial({
     name: 'isalive',
-    color: 'red',
+    color: 'black',
     flatShading: true,
   });
 }
@@ -345,76 +345,38 @@ function updateCells(reset) {
         continue;
       }
 
-      if (globals.trail) {
-        if (newState && prevState) {
-          // do nothing, already alive
-          // cell.material = materials.isAlive;
+      if (globals.colors && globals.trail) {
+        if (newState) {
+          const randColor = palette[ Math.floor(Math.random() * Math.floor(palette.length)) ];
+          const randMaterial = new THREE.MeshPhongMaterial( { color: randColor });
+          cell.material = randMaterial;
+        }
+      } else if (!globals.colors && globals.trail) {
+        if (!newState && prevState) { 
+          cell.material = materials.hasDied;
         } else if (newState && !prevState) {
           cell.material = materials.isAlive;
-        } else if (!newState && prevState) {
-          cell.material = materials.hasDied;
-        } else if (!newState && !prevState) {
-          // do nothing, already dead
+        }
+      } else if (globals.colors && !globals.trail) {
+        if (!newState && prevState) {
+          cell.material = materials.isDead;
+        } else if (newState) {
+          const randColor = palette[ Math.floor(Math.random() * Math.floor(palette.length)) ];
+          const randMaterial = new THREE.MeshPhongMaterial( { color: randColor });
+          cell.material = randMaterial;
         }
       } else {
-        if (newState && prevState) {
-          // do nothing, already alive
+        // no options
+        if (!newState && prevState) { 
+          cell.material = materials.isDead;
         } else if (newState && !prevState) {
           cell.material = materials.isAlive;
-        } else if (!newState && prevState) {
-          cell.material = materials.isDead;
-        } else if (!newState && !prevState) {
-          cell.material = materials.isDead;
         }
       }
 
       cell.state = newState;
-
     }
   }
-}
-
-/* a switch statement on cell material, called before a material update 
-  * (this is what makes it an indicator of the previous cell state)
-  * */
-function getPrevState(materialName) {
-  switch (materialName) {
-    case "isalive":
-      return true;
-    case "isdead":
-      return false;
-    case "hasdied":
-      return false;
-  }
-}
-
-/**
- * returns a buffer attribute for the color attribute
- * @return {THREE.BufferAttribute}
- * @example
- * - bufferGeom.setAttribute('color', getCellColor(isAlive));
- */
-function setCellColor(cell, cellState) {
-  const cellStateNormalized = (cellState) ? 1 : 0;
-
-  const hue = THREE.MathUtils.lerp(0.01, 0.5, cellStateNormalized);
-  const saturation = 1;
-  const lightness = 0.5;
-  gColor.setHSL(hue, saturation, lightness);
-  const rgb = gColor.toArray().map(v => v * 255); // convert to rgb
-
-  // make an array to store colors for each vertex
-  const numVerts = cell.getAttribute('position').count;
-  const itemSize = 3;  // r, g, b
-  const colors = new Uint8Array(itemSize * numVerts);
-  // copy the color into the colors array for each vertex
-  colors.forEach((v, idx) => {
-    colors[idx] = rgb[idx % 3];
-  });
-
-  const normalized = true;
-  const colorAttrib = new THREE.BufferAttribute(colors, itemSize, normalized);
-  cell.setAttribute('color', colorAttrib);
 }
 
 export default Canvas;
