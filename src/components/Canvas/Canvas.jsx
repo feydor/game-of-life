@@ -73,8 +73,6 @@ const Canvas = (props) => {
 
     initMaterials();
 
-    // await initModelsAndAnimations();
-
     initObjects();
 
     // change position of ui buttons on render
@@ -82,6 +80,7 @@ const Canvas = (props) => {
     let y = props.height - (props.height / 15);
     document.getElementById("play").style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
     document.getElementById("pause").style.transform = `translate(-50%, -50%) translate(${3 * x}px,${y}px)`;
+    document.getElementById("reset").style.transform = `translate(-50%, -50%) translate(${5 * x}px,${y}px)`;
 
     initEventListeners();
 
@@ -218,7 +217,7 @@ function initMaterials() {
   // cell has died material
   materials.hasDied = new THREE.MeshPhongMaterial({
     name: 'hasdied',
-    color: '#FFC0CB',
+    color: '#FFC0CB', // pink
     flatShading: true,
   });
 

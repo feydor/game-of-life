@@ -12,6 +12,10 @@ const UI = (props) => {
         <img src="pause.jpg" alt="pause button" />
       </div>
 
+      <div id="reset" onClick={props.handleResetEvent} className={styles.button}>
+        <img src="reset.png" alt="pause button" />
+      </div>
+
       <div id="load" className={styles.load}>
         <select defaultValue="random" onChange={props.handleLoadEvent}>
           <option value="random">Random</option>

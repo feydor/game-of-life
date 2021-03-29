@@ -10,6 +10,12 @@ export enum GameSpeed {
   VeryFast = 2
 }
 
+enum LoadedConfiguration {
+  Random,
+  Gun,
+  Acorn
+}
+
 // globals
 export const globals = {
   is3D: false,
@@ -23,8 +29,9 @@ export const globals = {
   width: 720,
   height: 720,
   boardSize: 40,
-  trail: false, // formely alive cells leave a 'trail'
+  trail: false, // formely alive cells leave a 'trail',
   colors: false, // random colors for alive and/or formely alive cells
+  loadedConfiguration: LoadedConfiguration.Random,
   runState: {
     m_isRunning: false,
     listener: function (val: any) {},
@@ -55,6 +62,22 @@ export function handlePauseEvent() {
   globals.runState.isRunning = false; 
 }
 
+export function handleResetEvent() {
+  globals.runState.isRunning = false;
+  switch (globals.loadedConfiguration) {
+    case LoadedConfiguration.Random:
+      GameState.setUpRandom();
+      break;
+    case LoadedConfiguration.Gun:
+      GameState.setUpGosperGun();
+      break;
+    case LoadedConfiguration.Acorn:
+      GameState.setUpAcorn();
+      break;
+  }
+  document.dispatchEvent(new Event("requestGameAnimationFrame"));
+}
+
 /**
  * changes the gamestate and sends out an event on Document for one animation frame
  */
@@ -62,21 +85,23 @@ export function handleLoadEvent(e: Event) {
   globals.runState.isRunning = false;
   switch (e.target.value) {
     case "random":
-      GameState.setUpRandom();
+      globals.loadedConfiguration = LoadedConfiguration.Random;
       document.dispatchEvent(new Event("requestGameAnimationFrame"));
       break;
     case "gun":
-      GameState.setUpGosperGun();
+      globals.loadedConfiguration = LoadedConfiguration.Gun;
       document.dispatchEvent(new Event("requestGameAnimationFrame"));
       break;
     case "acorn":
-      GameState.setUpAcorn();
+      globals.loadedConfiguration = LoadedConfiguration.Acorn;
       document.dispatchEvent(new Event("requestGameAnimationFrame"));
       break;
     default:
       console.error(`${e.target.value} is not an available option.`);
       break;
   }
+
+  handleResetEvent(); // requests an animation frame
 }
 
 export function handleViewChange() {
