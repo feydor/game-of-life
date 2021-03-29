@@ -22,7 +22,7 @@ export const globals = {
   aspect: 1.5, // set in Canvas along with width and height
   width: 720,
   height: 720,
-  boardSize: 80,
+  boardSize: 40,
   trail: false, // formely alive cells leave a 'trail'
   colors: false, // random colors for alive and/or formely alive cells
   runState: {
