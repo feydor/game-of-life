@@ -1,6 +1,6 @@
 ![](./examples/banner.png)
 
-# Game of Life WebGL
+# Game of Life three.js web app
 
 ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/feydor/game-of-life?include_prereleases)
 ![GitHub last commit](https://img.shields.io/github/last-commit/feydor/game-of-life)
@@ -32,9 +32,10 @@ A React.js web app to interact with a WebGL(three.js) implementation of Conway's
 # Screenshots
 [(Back to top)](#table-of-contents)
 
-### In progress screenshot
-As of 03/10/21:
-![](./examples/inprogress31021.png)
+### In progress screenshots
+As of 03/29/21:
+![](./examples/example.png)
+![](./examples/example1.png)
 
 # Installation
 [(Back to top)](#table-of-contents)
@@ -66,6 +67,7 @@ Technologies used in this mono repo include:
 
 - React.Js: front-end framework
 - Three.js: WebGL library
+- HTML5 Canvas: animation and browser rendering api
 - create-react-app: Web application bundler and setup
 - Prettier: JS code style formatter
 - Jest: Testing framework
@@ -73,19 +75,14 @@ Technologies used in this mono repo include:
 ### Folder Structure
 
 ```sh
-nummifier/
-├── client     # Front-end React.js app
-│   ├── build               # Static build, served by server.js
-│   ├── public              # HTML, favicons, etc
-│   └── src                 # React components, containers, tests, numerological methods
-│       ├── algorithims     # Gematria, Tic-Xenotation, digital reduction
-│       ├── components      # Function components
-│       ├── images          # gifs, resources
-│       └── containers      # Stateful class container and entrypoint
-├── db         # Database seeding functions
+game-of-life/
 ├── examples   # Screenshots and assorted images
-├── models     # MongoDB schemas, models, and pre-hooks
-└── server.js  # Back-end Express.js app
+├── public     # textures, models, resources
+└── src        # Front end React.js app
+    ├── components           # React.js components, including HTML5 Canvas
+    ├── containers           # React.js top-level container
+    └── game                 # Conway's Game of Life programatic implementation in TypeScript
+
 ```
 
 ## Design Overview
@@ -94,9 +91,24 @@ nummifier/
 ## Psuedocode
 
 ### Conway's Game of Life
-The following is main algorithm for calculating the next game state:
-```
-```
+The following is the main algorithm for calculating the next game state:
+<pre><code>
+<b>algorithm</b> GoL is
+    <b>input:</b> an array <em>CellMap</em> filled with the initial start condition (ISC),
+    <em>(Note: The ISC can be thought of as a program in GoL, written in simple binary, in which GoL is the processor.)</em>
+    <b>output:</b> the same returned with the next iteration of GoL
+
+    <b>foreach</b> cell, <em>C</em> in <em>CellMap</em>
+        <b>let</b> the number of <em>C</em>'s neighbors be <em>ncount</em>
+        <b>let</b> the current cell state of <em>C</em> be <em>cstate</em>
+
+        <b>if</b> <em>cstate</em> is 1 and <em>ncount</em> less than 2 or greater than 3
+            <em>C</em> = 0
+        <b>else if</b> <em>ncount</em> is equal to 3
+            <em>C</em> = 1
+   
+   <b>return</b> <em>CellMap</em>
+</pre></code>
 
 # License
 [(Back to top)](#table-of-contents)

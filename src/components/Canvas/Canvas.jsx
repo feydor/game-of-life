@@ -356,7 +356,7 @@ function init3d() {
       
       const cell = new THREE.Mesh( models.cell, cellMaterial ); 
       // cell.scale.set(0.98, 0.98, 0.98);
-      cell.scale.set(3.98, 3.98, 3.98);
+      cell.scale.set(4.98, 4.98, 4.98);
 
       let overflow = 0.5; // cell size / 2
       let coord = latLongToVector3(10 * ((x - globals.boardSize / 2) + overflow),
