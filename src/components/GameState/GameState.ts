@@ -82,7 +82,7 @@ export function handleResetEvent() {
 /**
  * changes the gamestate and sends out an event on Document for one animation frame
  */
-export function handleLoadEvent(e: Event) {
+export function handleLoadEvent(e: any) {
   globals.runState.isRunning = false;
   switch (e.target.value) {
     case "random":
@@ -113,8 +113,9 @@ export function handleViewChange() {
 /**
  * layout options are inclusive
  */
-export function handleLayoutChange(e: Event) {
-  let isChecked = document.getElementById(e.target.id).checked;
+export function handleLayoutChange(e: any) {
+  const elem = document.getElementById(e.target.id) as HTMLInputElement;
+  let isChecked = elem.checked;
   let id = e.target.id;
   switch (id) {
     case "trail":
