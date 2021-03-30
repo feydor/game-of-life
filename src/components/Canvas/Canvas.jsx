@@ -162,6 +162,22 @@ function latLongToVector3(lat, lon, radius, height) {
 }
 
 /**
+ * cartesian coordinates to toroidal coordinates
+ * @returns {THREE.Vector4}
+ */
+ function latLongToTorus(x, y, radius, height) {
+  let phi = (x)*Math.PI/180;
+  let theta = (y-180)*Math.PI/180;
+
+  const v1 = Math.sin(x / 100 * 2 * Math.PI);
+  const v2 = Math.cos(x / 100 * 2 * Math.PI);
+  const v3 = Math.sin(y / 100 * 2 * Math.PI);
+  const v4 = Math.cos(y / 100 * 2 * Math.PI);
+
+  return new THREE.Vector4(v1, v2, v3, v4);
+}
+
+/**
  * generates an array of loaded materials for the skybox
  * Note: for now, n entries of the same filename
  * @return {THREE.Material[]}
@@ -241,9 +257,14 @@ function initMaterials() {
   });
 
   // cell is alive material
-  materials.isAlive = new THREE.MeshBasicMaterial({
+  materials.isAlive2d = new THREE.MeshBasicMaterial({
     name: 'isalive',
     color: 'red',
+    flatShading: true,
+  });
+  materials.isAlive3d = new THREE.MeshToonMaterial({
+    name: 'isalive',
+    color: 'pink',
     flatShading: true,
   });
 }
@@ -300,7 +321,7 @@ function init2d() {
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
       const isAlive = GameState.currCells.getCellState(x, y);
-      const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
+      const cellMaterial = (isAlive) ? materials.isAlive2d : materials.isDead;
       
       const cell = new THREE.Mesh( models.cell, cellMaterial ); 
       cell.scale.set(0.98, 0.98, 0.98);
@@ -340,7 +361,7 @@ function initEventListeners() {
 }
 
 function init3d() {
-  let fieldGeom = new THREE.SphereGeometry(globals.boardSize, globals.boardSize, globals.boardSize);
+  const fieldGeom = new THREE.SphereGeometry(globals.boardSize, globals.boardSize, globals.boardSize);
   gField = new THREE.Mesh( fieldGeom, materials.field3d );   
   gField.position.set(0, 0, -0.05); // align on (0, 0)
   gField.scale.set(1, 1, 1);
@@ -352,7 +373,7 @@ function init3d() {
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
       const isAlive = GameState.currCells.getCellState(x, y);
-      const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
+      const cellMaterial = (isAlive) ? materials.isAlive3d : materials.isDead;
       
       const cell = new THREE.Mesh( models.cell, cellMaterial ); 
       // cell.scale.set(0.98, 0.98, 0.98);
@@ -378,6 +399,7 @@ function init3d() {
  */
 function updateCells(reset) {
   let cells = (globals.is3D) ? gCells3d : gCells2d;
+  let isAliveMaterial = (globals.is3D) ? materials.isAlive3d : materials.isAlive2d;
 
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
@@ -390,7 +412,7 @@ function updateCells(reset) {
         if (newState && prevState) {
           // do nothing, already alive
         } else if (newState && !prevState) {
-          cell.material = materials.isAlive;
+          cell.material = isAliveMaterial;
         } else if (!newState && prevState) {
           cell.material = materials.isDead;
         } else if (!newState && !prevState) {
@@ -410,7 +432,7 @@ function updateCells(reset) {
         if (!newState && prevState) { 
           cell.material = materials.hasDied;
         } else if (newState && !prevState) {
-          cell.material = materials.isAlive;
+          cell.material = isAliveMaterial;
         }
       } else if (globals.colors && !globals.trail) {
         if (!newState && prevState) {
@@ -425,7 +447,7 @@ function updateCells(reset) {
         if (!newState && prevState) { 
           cell.material = materials.isDead;
         } else if (newState && !prevState) {
-          cell.material = materials.isAlive;
+          cell.material = isAliveMaterial;
         }
       }
 
