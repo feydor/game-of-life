@@ -1,19 +1,19 @@
 /* GameState.ts - holds globals and the Game state */
 import * as GOL from "../../game/gameoflife";
-import { Clock, Camera } from 'three';
+import { Clock, Camera } from "three";
 
 export enum GameSpeed {
   VerySlow = 6,
   Slow = 5,
   Medium = 4,
   Fast = 3,
-  VeryFast = 2
+  VeryFast = 2,
 }
 
 enum LoadedConfiguration {
   Random,
   Gun,
-  Acorn
+  Acorn,
 }
 
 // globals
@@ -44,8 +44,8 @@ export const globals = {
     },
     registerListener: function (listener: (val: any) => void) {
       this.listener = listener;
-    }
-  }
+    },
+  },
 };
 
 export const GameState = new GOL.Game(globals.boardSize, globals.boardSize);
@@ -55,11 +55,11 @@ GameState.setUpRandom(); // default
 // UI / Event handlers
 //////////////////////////////////////
 export function handlePlayEvent() {
-  globals.runState.isRunning = true; 
+  globals.runState.isRunning = true;
 }
 
 export function handlePauseEvent() {
-  globals.runState.isRunning = false; 
+  globals.runState.isRunning = false;
 }
 
 export function handleResetEvent() {
@@ -118,11 +118,11 @@ export function handleLayoutChange(e: Event) {
   let id = e.target.id;
   switch (id) {
     case "trail":
-      globals.trail = (isChecked) ? true : false;
+      globals.trail = isChecked ? true : false;
       break;
     case "colors":
-      globals.colors = (isChecked) ? true : false;
-    break;
+      globals.colors = isChecked ? true : false;
+      break;
     default:
       console.error(`${id} is not an option in layout.`);
       break;
