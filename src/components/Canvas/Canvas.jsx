@@ -13,7 +13,8 @@ const inputManager = new InputManager();
 
 // three.js globals
 let renderer;
-let scene = new THREE.Scene();
+const scene3d = new THREE.Scene();
+const scene2d = new THREE.Scene();
 
 const materials = {
   field: undefined,
@@ -43,7 +44,8 @@ const palette = ["#F72585", "#B5179E", "#7209B7", "#560BAD", "#480CA8", "#3A0CA3
 "#4895EF", "#4CC9F0"];
 
 let gField;
-let gCells = new Array(GameState.WIDTH * GameState.HEIGHT);
+let gCells2d = new Array(GameState.WIDTH * GameState.HEIGHT);
+let gCells3d = new Array(GameState.WIDTH * GameState.HEIGHT);
 
 /**
  * for webgl rendering
@@ -67,13 +69,15 @@ const Canvas = (props) => {
     const skyboxMaterials = createMaterialArray('skybox/island.jpg', 6);
     const skyboxGeo = new THREE.BoxGeometry(1000, 1000, 1000); 
     const skybox = new THREE.Mesh( skyboxGeo, skyboxMaterials );
-    scene.add( skybox );
+    scene2d.add( skybox );
+    scene3d.add( skybox );
 
     initLights();
 
     initMaterials();
 
-    initObjects();
+    init2d();
+    init3d();
 
     // change position of ui buttons on render
     let x = props.width / 20; // 10vw in UI.module.css
@@ -121,9 +125,9 @@ function render() {
   }
 
   if (!globals.is3D) {
-    renderer.render(scene, globals.orthographicCamera);
+    renderer.render(scene2d, globals.orthographicCamera);
   } else {
-    renderer.render(scene, globals.perspectiveCamera);
+    renderer.render(scene3d, globals.perspectiveCamera);
   }
 }
 
@@ -176,13 +180,12 @@ function initCameras() {
   const far = 10000;
   globals.perspectiveCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
   globals.perspectiveCamera.position.set(0, 0, 41);
-  scene.add(globals.perspectiveCamera);
+  scene3d.add(globals.perspectiveCamera);
 
   aspect = globals.boardSize * globals.aspect;
   globals.orthographicCamera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
   globals.orthographicCamera.position.set(0, 0, 2);
-
-  scene.add( globals.orthographicCamera );
+  scene2d.add( globals.orthographicCamera );
 
   // init mouse interaction
   const orthoControls = new OrbitControls(globals.orthographicCamera, renderer.domElement);
@@ -194,15 +197,16 @@ function initCameras() {
   const perspControls = new OrbitControls(globals.perspectiveCamera, renderer.domElement);
   perspControls.enablePan = false;
   perspControls.minDistance = 1.0;
-  perspControls.maxDistance = 45;
+  perspControls.maxDistance = 145;
   perspControls.update();
 }
 
 function initMaterials() {
   // board material
-  materials.field = new THREE.MeshBasicMaterial({
+  materials.field = new THREE.MeshNormalMaterial({
     color: 'white',
-    side: THREE.DoubleSide
+    side: THREE.DoubleSide,
+    flatShading: true,
   });
 
   // cell is dead material
@@ -243,7 +247,8 @@ function initLights() {
   // hemisphere light
   lights.hemisphereLight = new THREE.HemisphereLight(0xB1E1FF, 0xB97A20, 1.0);
   // add the lights in the scene
-  scene.add(lights.hemisphereLight);
+  scene2d.add(lights.hemisphereLight);
+  scene3d.add(lights.hemisphereLight);
   // scene.add(lights.topLight);
   // scene.add(lights.bottomLight);
 }
@@ -265,15 +270,16 @@ async function initModelsAndAnimations() {
   console.log(models.sheep.animations);
 }
 
-function initObjects() {
+function init2d() {
   let fieldGeom = new THREE.PlaneGeometry( globals.boardSize, globals.boardSize ); // 10x10 board
   gField = new THREE.Mesh( fieldGeom, materials.field );   
   gField.position.set(0, 0, -0.05); // align on (0, 0)
   gField.scale.set(1, 1, 1);
   // gField.rotateX(Math.PI / 2); // NOTE: Comment out when using PerspectiveCamera
-  scene.add( gField );
+  scene2d.add( gField );
 
-  models.cell = new THREE.BoxGeometry(1, 1, 1); // 1x1 cell
+  // models.cell = new THREE.BoxGeometry(1, 1, 1); // 1x1 cell
+  models.cell = new THREE.PlaneGeometry(1, 1);
 
   // init the Game of Life cells on gField
   for (let y = 0; y < GameState.HEIGHT; y++) {
@@ -292,9 +298,9 @@ function initObjects() {
       // OLD
       // cell.position.set((x - 19.50) * 0.25, (y - 19.50) * 0.25, - 0.01);
 
-      gCells[x + y * GameState.HEIGHT] = { geom: cell, material: cellMaterial, state: isAlive };
+      gCells2d[x + y * GameState.HEIGHT] = { geom: cell, material: cellMaterial, state: isAlive };
 
-      scene.add( cell );
+      scene2d.add( cell );
     }
   }
 
@@ -306,9 +312,9 @@ function initObjects() {
 
   const gGrid = new THREE.GridHelper( size, divisions, colorCenterLine, colorGrid );
   gGrid.rotateX(Math.PI / 2); // NOTE: Uncomment when using PerspectiveCamera
-  scene.add( gGrid );
+  scene2d.add( gGrid );
 
-  scene.add( new THREE.AxesHelper()); // to be able to see the xyz axis
+  scene2d.add( new THREE.AxesHelper()); // to be able to see the xyz axis
 }
 
 function initEventListeners() {
@@ -318,14 +324,49 @@ function initEventListeners() {
   });
 }
 
+function init3d() {
+  let fieldGeom = new THREE.SphereGeometry(globals.boardSize, globals.boardSize, globals.boardSize);
+  gField = new THREE.Mesh( fieldGeom, materials.field );   
+  gField.position.set(0, 0, -0.05); // align on (0, 0)
+  gField.scale.set(1, 1, 1);
+  scene3d.add( gField );
+
+  models.cell = new THREE.BoxGeometry(1, 1, 1);
+
+  // init the Game of Life cells on gField
+  for (let y = 0; y < GameState.HEIGHT; y++) {
+    for (let x = 0; x < GameState.WIDTH; x++) {
+      const isAlive = GameState.currCells.getCellState(x, y);
+      const cellMaterial = (isAlive) ? materials.isAlive : materials.isDead;
+      
+      const cell = new THREE.Mesh( models.cell, cellMaterial ); 
+      // cell.scale.set(0.98, 0.98, 0.98);
+      cell.scale.set(4.98, 4.98, 4.98);
+
+      let overflow = 0.5; // cell size / 2
+      let coord = latLongToVector3(10 * ((x - globals.boardSize / 2) + overflow),
+       10 * ((y - globals.boardSize / 2) + overflow), 1, 0.04);
+      cell.translateOnAxis(coord, globals.boardSize);
+
+      gCells3d[x + y * GameState.HEIGHT] = { geom: cell, material: cellMaterial, state: isAlive };
+
+      scene3d.add( cell );
+    }
+  }
+
+
+}
+
 /**
  * draws the cells
  * @param {boolean} reset, ignore previous state
  */
 function updateCells(reset) {
+  let cells = (globals.is3D) ? gCells3d : gCells2d;
+
   for (let y = 0; y < GameState.HEIGHT; y++) {
     for (let x = 0; x < GameState.WIDTH; x++) {
-      let cell = gCells[x + y * GameState.HEIGHT].geom;
+      let cell = cells[x + y * GameState.HEIGHT].geom;
 
       let newState = GameState.currCells.getCellState(x, y);
       let prevState = cell.state;
