@@ -26,8 +26,7 @@ A React.js web app to interact with a WebGL(three.js) implementation of Conway's
 # Live Version
 [(Back to top)](#table-of-contents)
 
-![Heroku](https://heroku-badges.herokuapp.com/?app=#&root=index.html)
-[Go to live version.](#)
+[Go to live version.](https://3dlife.netlify.app)
 
 # Screenshots
 [(Back to top)](#table-of-contents)
