@@ -76,6 +76,7 @@ export function handleResetEvent() {
       break;
   }
   document.dispatchEvent(new Event("requestGameAnimationFrame"));
+  document.dispatchEvent(new Event("retestOptions"));
 }
 
 /**
@@ -106,6 +107,7 @@ export function handleLoadEvent(e: Event) {
 
 export function handleViewChange() {
   globals.is3D = !globals.is3D;
+  handleResetEvent();
 }
 
 /**

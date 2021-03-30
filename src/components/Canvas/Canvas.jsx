@@ -69,8 +69,12 @@ const Canvas = (props) => {
     const skyboxMaterials = createMaterialArray('skybox/island.jpg', 6);
     const skyboxGeo = new THREE.BoxGeometry(1000, 1000, 1000); 
     const skybox = new THREE.Mesh( skyboxGeo, skyboxMaterials );
-    scene2d.add( skybox );
     scene3d.add( skybox );
+
+    // init 2d 'skybox'
+    const loader = new THREE.TextureLoader();
+    // const bgTexture = loader.load('gradient.jpeg');
+    // scene2d.background = bgTexture;
 
     initLights();
 
@@ -179,20 +183,21 @@ function initCameras() {
   const near = 0.1;
   const far = 10000;
   globals.perspectiveCamera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-  globals.perspectiveCamera.position.set(0, 0, 41);
+  globals.perspectiveCamera.position.set(0, 0, 89);
   scene3d.add(globals.perspectiveCamera);
 
   aspect = globals.boardSize * globals.aspect;
-  globals.orthographicCamera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 30000 );
-  globals.orthographicCamera.position.set(0, 0, 2);
+  // globals.orthographicCamera = new THREE.OrthographicCamera( aspect / - 2, aspect / 2, aspect / 2, aspect / - 2, 0.1, 3000 );
+  globals.orthographicCamera = new THREE.OrthographicCamera( -aspect, aspect, aspect, -aspect, 0.1, 3000 );
+  globals.orthographicCamera.position.set(0, 0, 10);
   scene2d.add( globals.orthographicCamera );
 
   // init mouse interaction
-  const orthoControls = new OrbitControls(globals.orthographicCamera, renderer.domElement);
-  orthoControls.enablePan = false;
-  orthoControls.minDistance = 1.0;
-  orthoControls.maxDistance = 45;
-  orthoControls.update();
+  // const orthoControls = new OrbitControls(globals.orthographicCamera, renderer.domElement);
+  // orthoControls.enablePan = false;
+  // orthoControls.minDistance = 1.0;
+  // orthoControls.maxDistance = 45;
+  // orthoControls.update();
   
   const perspControls = new OrbitControls(globals.perspectiveCamera, renderer.domElement);
   perspControls.enablePan = false;
@@ -203,14 +208,20 @@ function initCameras() {
 
 function initMaterials() {
   // board material
-  materials.field = new THREE.MeshNormalMaterial({
+  materials.field3d = new THREE.MeshNormalMaterial({
+    color: 'white',
+    side: THREE.DoubleSide,
+    flatShading: true,
+  });
+
+  materials.field2d = new THREE.LineBasicMaterial({
     color: 'white',
     side: THREE.DoubleSide,
     flatShading: true,
   });
 
   // cell is dead material
-  materials.isDead = new THREE.MeshPhongMaterial({
+  materials.isDead = new THREE.MeshToonMaterial({
     name: 'isdead',
     color: 'white',
     transparent: true,
@@ -219,16 +230,16 @@ function initMaterials() {
   });
 
   // cell has died material
-  materials.hasDied = new THREE.MeshPhongMaterial({
+  materials.hasDied = new THREE.MeshBasicMaterial({
     name: 'hasdied',
     color: '#FFC0CB', // pink
     flatShading: true,
   });
 
   // cell is alive material
-  materials.isAlive = new THREE.MeshPhongMaterial({
+  materials.isAlive = new THREE.MeshBasicMaterial({
     name: 'isalive',
-    color: 'black',
+    color: 'red',
     flatShading: true,
   });
 }
@@ -272,7 +283,7 @@ async function initModelsAndAnimations() {
 
 function init2d() {
   let fieldGeom = new THREE.PlaneGeometry( globals.boardSize, globals.boardSize ); // 10x10 board
-  gField = new THREE.Mesh( fieldGeom, materials.field );   
+  gField = new THREE.Mesh( fieldGeom, materials.field2d );   
   gField.position.set(0, 0, -0.05); // align on (0, 0)
   gField.scale.set(1, 1, 1);
   // gField.rotateX(Math.PI / 2); // NOTE: Comment out when using PerspectiveCamera
@@ -326,7 +337,7 @@ function initEventListeners() {
 
 function init3d() {
   let fieldGeom = new THREE.SphereGeometry(globals.boardSize, globals.boardSize, globals.boardSize);
-  gField = new THREE.Mesh( fieldGeom, materials.field );   
+  gField = new THREE.Mesh( fieldGeom, materials.field3d );   
   gField.position.set(0, 0, -0.05); // align on (0, 0)
   gField.scale.set(1, 1, 1);
   scene3d.add( gField );
@@ -388,7 +399,7 @@ function updateCells(reset) {
       if (globals.colors && globals.trail) {
         if (newState) {
           const randColor = palette[ Math.floor(Math.random() * Math.floor(palette.length)) ];
-          const randMaterial = new THREE.MeshPhongMaterial( { color: randColor });
+          const randMaterial = new THREE.MeshBasicMaterial( { color: randColor, flatShading: true });
           cell.material = randMaterial;
         }
       } else if (!globals.colors && globals.trail) {
@@ -402,7 +413,7 @@ function updateCells(reset) {
           cell.material = materials.isDead;
         } else if (newState) {
           const randColor = palette[ Math.floor(Math.random() * Math.floor(palette.length)) ];
-          const randMaterial = new THREE.MeshPhongMaterial( { color: randColor });
+          const randMaterial = new THREE.MeshBasicMaterial( { color: randColor, flatShading: true });
           cell.material = randMaterial;
         }
       } else {
