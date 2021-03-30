@@ -207,16 +207,20 @@ function initCameras() {
 }
 
 function initMaterials() {
-  // board material
-  materials.field3d = new THREE.MeshNormalMaterial({
-    color: 'white',
-    side: THREE.DoubleSide,
+  const loader = new THREE.TextureLoader();
+  const sphereTexture = loader.load('bg.png');
+  sphereTexture.wrapS = THREE.RepeatWrapping;
+  sphereTexture.wrapT = THREE.RepeatWrapping;
+  sphereTexture.repeat.set(globals.boardSize, globals.boardSize);
+
+  materials.field3d = new THREE.MeshPhongMaterial({
     flatShading: true,
+    map: sphereTexture,
   });
+  
 
   materials.field2d = new THREE.LineBasicMaterial({
     color: 'white',
-    side: THREE.DoubleSide,
     flatShading: true,
   });
 
@@ -352,7 +356,7 @@ function init3d() {
       
       const cell = new THREE.Mesh( models.cell, cellMaterial ); 
       // cell.scale.set(0.98, 0.98, 0.98);
-      cell.scale.set(4.98, 4.98, 4.98);
+      cell.scale.set(3.98, 3.98, 3.98);
 
       let overflow = 0.5; // cell size / 2
       let coord = latLongToVector3(10 * ((x - globals.boardSize / 2) + overflow),
