@@ -218,22 +218,24 @@ function initCameras() {
     0.1,
     3000
   );
-  globals.orthographicCamera.position.set(0, 0, 10);
+  globals.orthographicCamera.position.set(0, 0, aspect);
   scene2d.add(globals.orthographicCamera);
 
   // init mouse interaction
-  // const orthoControls = new OrbitControls(globals.orthographicCamera, renderer.domElement);
-  // orthoControls.enablePan = false;
-  // orthoControls.minDistance = 1.0;
-  // orthoControls.maxDistance = 45;
-  // orthoControls.update();
+  const orthoControls = new OrbitControls(globals.orthographicCamera, renderer.domElement);
+  orthoControls.enablePan = false;
+  orthoControls.enableDamping = true;
+  orthoControls.enableRotate = false;
+  orthoControls.minZoom = 1.0;
+  orthoControls.maxZoom = 2.5;
+  orthoControls.update();
 
   const perspControls = new OrbitControls(
     globals.perspectiveCamera,
     renderer.domElement
   );
   perspControls.enablePan = false;
-  perspControls.minDistance = 1.0;
+  perspControls.minDistance = 55;
   perspControls.maxDistance = 145;
   perspControls.update();
 }
